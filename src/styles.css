@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+html, body, #root {
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  background-color: #f8fafc;
+}
+
+/* Print Optimization for Official Documents (Invoice & Surat Jalan) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  *, *::before, *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html, body {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 10px !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #invoice-print-area,
+  #invoice-print-area * {
+    visibility: visible;
+  }
+
+  #invoice-print-area {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    padding: 8mm 10mm !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    font-size: 9.5pt !important;
+  }
+
+  /* Scale down table text slightly for print */
+  #invoice-print-area table {
+    font-size: 8pt !important;
+  }
+
+  #invoice-print-area thead th {
+    font-size: 7.5pt !important;
+  }
+
+  /* Kop surat logo size for print */
+  #invoice-print-area img {
+    height: 48px !important;
+    width: auto !important;
+  }
+
+  /* Company name heading */
+  #invoice-print-area h2 {
+    font-size: 14pt !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .page-break-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Ensure colors print correctly */
+  .text-blue-700, .text-blue-900, .text-blue-950 { color: #1d4ed8 !important; }
+  .text-emerald-800 { color: #065f46 !important; }
+  .text-red-600 { color: #dc2626 !important; }
+  .bg-slate-100 { background-color: #f1f5f9 !important; }
+  .bg-blue-50\/50 { background-color: #eff6ff !important; }
+  .bg-slate-50 { background-color: #f8fafc !important; }
+}

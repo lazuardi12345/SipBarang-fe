@@ -1,0 +1,20 @@
+{
+  "name": "SIPBarang - PT Almira Yuniar Trek",
+  "short_name": "AYT Ekspedisi",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "description": "Sistem Informasi Pengiriman Barang & Delivery Order - PT Almira Yuniar Trek",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/logo.jpg",
+      "sizes": "192x192 256x256 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
