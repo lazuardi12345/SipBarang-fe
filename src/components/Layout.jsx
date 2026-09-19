@@ -16,9 +16,8 @@ import {
   AlertTriangle,
   Layers,
 } from 'lucide-react';
-import { useAuth } from '../presentation/contexts/AuthContext';
-import { UserRole } from '../domain/entities/User';
-import { APP_NAME, COMPANY_NAME } from '../lib/constants';
+import { useAuth } from '../context/AuthContext';
+import { UserRole, APP_NAME, COMPANY_NAME } from '../utils/constants';
 
 const MENU = [
   {

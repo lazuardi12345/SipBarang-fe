@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { AuthProvider, useAuth } from './presentation/contexts/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -10,8 +10,8 @@ import DraftSuratJalanPage from './pages/DraftSuratJalanPage';
 import RiwayatPage from './pages/RiwayatPage';
 import InvoicePage from './pages/InvoicePage';
 import Layout from './components/Layout';
-import { RoleGuard } from './presentation/components/layout/RoleGuard';
-import { UserRole } from './domain/entities/User';
+import { RoleGuard } from './components/layout/RoleGuard';
+import { UserRole } from './utils/constants';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();

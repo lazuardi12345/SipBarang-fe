@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../presentation/contexts/AuthContext';
-import { Alert } from '../presentation/components/ui/Alert';
-import { UserRole } from '../domain/entities/User';
+import { useAuth } from '../context/AuthContext';
+import { Alert } from '../components/ui/Alert';
+import { UserRole } from '../utils/constants';
 
 export default function RegisterPage() {
   const { register } = useAuth();

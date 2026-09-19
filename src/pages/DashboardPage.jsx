@@ -1,10 +1,10 @@
 "use client";
 
 import { Link } from "react-router-dom";
-import { useAuth } from "../presentation/contexts/AuthContext";
-import { useDeliveryOrders } from "../presentation/hooks/useDeliveryOrders";
-import { useInvoices } from "../presentation/hooks/useInvoices";
-import { formatRupiah, formatTanggal } from "../lib/format";
+import { useAuth } from "../context/AuthContext";
+import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
+import { useInvoices } from "../hooks/useInvoices";
+import { formatRupiah, formatTanggal } from "../utils/format";
 import {
   Truck,
   ClipboardCheck,
@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
-import { UserRole } from "../domain/entities/User";
+import { UserRole } from "../utils/constants";
 
 export default function DashboardPage() {
   const { user } = useAuth();

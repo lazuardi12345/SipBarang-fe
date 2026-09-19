@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../presentation/contexts/AuthContext';
-import { Input } from '../presentation/components/ui/Input';
-import { Button } from '../presentation/components/ui/Button';
-import { Alert } from '../presentation/components/ui/Alert';
+import { useAuth } from '../context/AuthContext';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { Alert } from '../components/ui/Alert';
 import { Truck, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {

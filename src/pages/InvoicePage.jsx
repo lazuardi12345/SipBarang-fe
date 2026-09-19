@@ -1,10 +1,8 @@
-"use client";
-
 import { useState } from "react";
-import { useDeliveryOrders } from "../presentation/hooks/useDeliveryOrders";
-import { useInvoices } from "../presentation/hooks/useInvoices";
-import { Modal } from "../presentation/components/ui/Modal";
-import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../lib/format";
+import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
+import { useInvoices } from "../hooks/useInvoices";
+import { Modal } from "../components/ui/Modal";
+import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../utils/format";
 import {
   FileText,
   Plus,
@@ -22,7 +20,7 @@ import {
   Building2,
   Send
 } from "lucide-react";
-import { InvoiceOfficialView } from "../presentation/components/invoice/InvoiceOfficialView";
+import { InvoiceOfficialView } from "../components/invoice/InvoiceOfficialView";
 
 const STATUS_INVOICE_COLORS = {
   BELUM_DIBAYAR: { text: "text-amber-700", bg: "bg-amber-100", label: "Belum Dibayar" },
@@ -83,23 +81,6 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
     );
   });
 
-  const selectedOrders = deliveredOrders.filter((o) => selected.includes(o.id));
-  const totalBruto = selectedOrders.reduce(
-    (sum, o) => sum + Number(o.biayaEkspedisi ?? o.tarifPengiriman ?? 0),
-    0
-  );
-  const totalPPh = selectedOrders.reduce(
-    (sum, o) =>
-      sum +
-      Number(o.pph2 ?? o.nilaiPPh ?? Math.round((o.biayaEkspedisi || 0) * 0.02)),
-    0
-  );
-  const totalBersih = selectedOrders.reduce(
-    (sum, o) =>
-      sum +
-      Number(o.totalSetelahPPh ?? (o.biayaEkspedisi || 0) - (o.pph2 || 0)),
-    0
-  );
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -324,30 +305,6 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
         )}
       </div>
 
-      {/* Ringkasan Finansial Hasil Penggabungan */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 text-xs">
-        <div className="flex items-center justify-between font-bold text-blue-950 border-b border-blue-200/80 pb-2 mb-3">
-          <span>Ringkasan Invoice Gabungan</span>
-          <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-[11px] font-bold text-white">
-            {selected.length} Pengiriman Terpilih
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <p className="text-[11px] text-slate-500">Total Tarif Ekspedisi (Bruto)</p>
-            <p className="font-bold text-sm text-slate-900 mt-0.5">{formatRupiah(totalBruto)}</p>
-          </div>
-          <div>
-            <p className="text-[11px] text-slate-500">Potongan Pajak PPh 2%</p>
-            <p className="font-bold text-sm text-red-700 mt-0.5">- {formatRupiah(totalPPh)}</p>
-          </div>
-          <div>
-            <p className="text-[11px] text-emerald-800 font-bold">Total Bersih Ditagihkan</p>
-            <p className="font-black text-base text-emerald-800 mt-0.5">{formatRupiah(totalBersih)}</p>
-          </div>
-        </div>
-      </div>
 
       {/* Tombol Aksi */}
       <div className="flex gap-2 justify-end pt-2 border-t">
