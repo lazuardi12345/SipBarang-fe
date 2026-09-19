@@ -10,4 +10,9 @@ export const tarifApi = {
     const res = await ApiClient.get(`/tarif/${id}`);
     return res.data || null;
   },
+
+  async create(payload) {
+    const res = await ApiClient.post("/tarif", payload);
+    return res.data;
+  },
 };

@@ -15,6 +15,7 @@ import {
   User,
   AlertTriangle,
   Layers,
+  MapPinned,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, APP_NAME, COMPANY_NAME } from '../utils/constants';
@@ -31,6 +32,12 @@ const MENU = [
     label: 'Input Pengiriman',
     icon: Truck,
     roles: [UserRole.ADMIN], // Khusus Admin
+  },
+  {
+    href: '/dashboard/master-tujuan',
+    label: 'Master Tujuan',
+    icon: MapPinned,
+    roles: [UserRole.ADMIN],
   },
   {
     href: '/dashboard/draft-surat-jalan',
@@ -74,6 +81,7 @@ export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const currentRole = String(user?.role || '').toUpperCase();
 
   useEffect(() => {
     const handleBeforeInstall = (e) => {
@@ -102,7 +110,9 @@ export default function Layout({ children }) {
     }
   };
 
-  const visibleMenu = MENU.filter((item) => user && item.roles.includes(user.role));
+  const visibleMenu = MENU.filter(
+    (item) => user && item.roles.includes(currentRole)
+  );
 
   const handleLogout = () => {
     logout();

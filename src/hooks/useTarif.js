@@ -20,5 +20,11 @@ export function useTarif() {
     loadTarif();
   }, [loadTarif]);
 
-  return { tarifList, loading };
+  const createTarif = useCallback(async (payload) => {
+    const tarif = await tarifApi.create(payload);
+    await loadTarif();
+    return tarif;
+  }, [loadTarif]);
+
+  return { tarifList, loading, createTarif, reload: loadTarif };
 }

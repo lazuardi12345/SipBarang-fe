@@ -9,6 +9,7 @@ import PelaporanPage from './pages/PelaporanPage';
 import DraftSuratJalanPage from './pages/DraftSuratJalanPage';
 import RiwayatPage from './pages/RiwayatPage';
 import InvoicePage from './pages/InvoicePage';
+import TarifPage from './pages/TarifPage';
 import Layout from './components/Layout';
 import { RoleGuard } from './components/layout/RoleGuard';
 import { UserRole } from './utils/constants';
@@ -51,6 +52,18 @@ function AppRoutes() {
             <Layout>
               <RoleGuard allow={[UserRole.ADMIN]}>
                 <DeliveryOrderPage />
+              </RoleGuard>
+            </Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/dashboard/master-tujuan"
+        element={
+          <PrivateRoute>
+            <Layout>
+              <RoleGuard allow={[UserRole.ADMIN]}>
+                <TarifPage />
               </RoleGuard>
             </Layout>
           </PrivateRoute>
