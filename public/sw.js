@@ -1,5 +1,5 @@
 // Service Worker for SIPBarang PWA - PT ALMAIRA YUNIAR TREK
-const CACHE_NAME = 'ayt-sipbarang-v1';
+const CACHE_NAME = 'ayt-sipbarang-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -55,8 +55,15 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => {
         // Fallback jika offline dan request halaman
         if (event.request.headers.get('accept')?.includes('text/html')) {
-          return caches.match('/index.html');
+          return caches.match('/index.html').then((fallback) => {
+            return fallback || new Response('Offline', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+            });
+          });
         }
+
+        return new Response('', { status: 503 });
       });
     })
   );
