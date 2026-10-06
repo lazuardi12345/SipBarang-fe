@@ -255,7 +255,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                             </span>
                             {do_.jumlahKoli > 0 && (
                               <span className="font-bold text-purple-700" style={{ fontSize: "7pt" }}>
-                                [{do_.jumlahKoli} Koli]
+                                [{do_.jumlahKoli} Karung]
                               </span>
                             )}
                           </td>

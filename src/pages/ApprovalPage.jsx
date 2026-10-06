@@ -313,7 +313,7 @@ export default function ApprovalPage() {
                     <span className="text-slate-600">
                       {order.itemsBarang && order.itemsBarang.length > 0
                         ? order.itemsBarang
-                            .map((i) => `${i.namaBarang} (${i.jumlah} ${i.satuan || "pcs"})`)
+                            .map((i) => `${i.namaBarang} (${i.jumlah} ${i.satuan || "Karung"})`)
                             .join(" • ")
                         : order.namaBarang || "-"}
                     </span>

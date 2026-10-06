@@ -179,7 +179,7 @@ export function DeliveryOrderForm({
             onChange={(e) => update("namaBarang", e.target.value)}
           />
           <Input
-            label="Jumlah Koli"
+            label="Jumlah Karung"
             type="number"
             min={1}
             required

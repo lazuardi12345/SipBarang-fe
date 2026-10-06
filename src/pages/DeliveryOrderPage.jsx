@@ -39,7 +39,7 @@ export default function DeliveryOrderPage() {
     open: false,
     order: null,
     noDocPerusahaan: "",
-    tglDocPerusahaan: new Date().toISOString().split("T")[0],
+    tglDocPerusahaan: "",
     keteranganDoc: "",
     error: null,
     processing: false,
@@ -71,12 +71,7 @@ export default function DeliveryOrderPage() {
     setSubmitting(true);
     try {
       await create(input);
-      // If created as draft, switch to draft tab so user can see it in list
-      if (input.status === "DRAFT") {
-        setActiveTab("draft");
-      } else {
-        setActiveTab("all");
-      }
+      setActiveTab("satu_jalan");
     } finally {
       setSubmitting(false);
     }
@@ -87,7 +82,7 @@ export default function DeliveryOrderPage() {
       open: true,
       order,
       noDocPerusahaan: order.noDocPerusahaan || "",
-      tglDocPerusahaan: order.tglDocPerusahaan || new Date().toISOString().split("T")[0],
+      tglDocPerusahaan: order.tglDocPerusahaan || "",
       keteranganDoc: order.keteranganDoc || "",
       error: null,
       processing: false,
@@ -100,6 +95,13 @@ export default function DeliveryOrderPage() {
       setSubmitModal((prev) => ({
         ...prev,
         error: "Nomor Dokumen / Surat Jalan dari Perusahaan wajib diisi untuk diajukan ke Direktur",
+      }));
+      return;
+    }
+    if (!submitModal.tglDocPerusahaan) {
+      setSubmitModal((prev) => ({
+        ...prev,
+        error: "Tanggal surat jalan perusahaan wajib diisi",
       }));
       return;
     }
@@ -178,7 +180,7 @@ export default function DeliveryOrderPage() {
             Input & Manajemen Pengiriman
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Input rencana pengiriman, tampung draft, ajukan setelah surat jalan pabrik turun, hingga disetujui Direktur.
+            Catat tujuan dan barang terlebih dahulu, lalu lengkapi schedule/rit serta No. Doc dari surat jalan perusahaan sebelum diajukan ke Direktur.
           </p>
         </div>
 
@@ -194,7 +196,7 @@ export default function DeliveryOrderPage() {
             }`}
           >
             <PlusCircle size={15} />
-            Input Baru
+            1. Rencana Tujuan
           </button>
 
           <button
@@ -207,7 +209,7 @@ export default function DeliveryOrderPage() {
             }`}
           >
             <Layers size={15} />
-            <span>Satukan 1 Kali Jalan (Rit)</span>
+            <span>2. Schedule & No. Doc</span>
           </button>
 
           <button
@@ -220,7 +222,7 @@ export default function DeliveryOrderPage() {
             }`}
           >
             <FileText size={15} />
-            <span>Draft List (Tunggu SJ)</span>
+            <span>Daftar Rencana</span>
             <span
               className={`rounded-full px-1.5 py-0.2 text-[11px] ${
                 activeTab === "draft" ? "bg-white/25 text-white" : "bg-amber-100 text-amber-800"
@@ -607,6 +609,7 @@ export default function DeliveryOrderPage() {
                 onChange={(e) =>
                   setSubmitModal({ ...submitModal, noDocPerusahaan: e.target.value })
                 }
+                required
                 className="w-full rounded-lg border border-slate-300 p-2.5 font-mono text-xs focus:border-blue-500 focus:outline-none"
               />
               <p className="text-[11px] text-slate-400 mt-1">
@@ -625,6 +628,7 @@ export default function DeliveryOrderPage() {
                   onChange={(e) =>
                     setSubmitModal({ ...submitModal, tglDocPerusahaan: e.target.value })
                   }
+                  required
                   className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
                 />
               </div>

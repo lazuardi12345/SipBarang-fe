@@ -184,7 +184,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
                         <td className="px-3 py-2 text-center text-slate-500">{idx + 1}</td>
                         <td className="px-3 py-2 font-semibold text-slate-900">{item.namaBarang}</td>
                         <td className="px-3 py-2 text-center font-bold text-slate-900">{item.jumlah}</td>
-                        <td className="px-3 py-2 text-center text-slate-600">{item.satuan || "Lembar"}</td>
+                        <td className="px-3 py-2 text-center text-slate-600">{item.satuan || "Karung"}</td>
                         <td className="px-3 py-2 text-right font-mono text-slate-700">
                           {item.hargaSatuan ? formatRupiah(item.hargaSatuan) : "-"}
                         </td>
@@ -209,7 +209,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-slate-700 font-medium">{order.namaBarang || "-"} ({order.jumlahKoli || 0} Koli)</p>
+              <p className="text-xs text-slate-700 font-medium">{order.namaBarang || "-"} ({order.jumlahKoli || 0} Karung)</p>
             )}
           </div>
 

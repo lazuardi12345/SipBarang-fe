@@ -19,9 +19,9 @@ import {
 
 export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToApproval, onGoToDrafts }) {
   // Form Data Armada & Schedule
-  const [noSchedule, setNoSchedule] = useState(`S0794312/IX/${new Date().getFullYear()}`);
-  const [tglSchedule, setTglSchedule] = useState(new Date().toISOString().split("T")[0]);
-  const [tipeMobilRit, setTipeMobilRit] = useState("8 TON / Rit : 1");
+  const [noSchedule, setNoSchedule] = useState("");
+  const [tglSchedule, setTglSchedule] = useState("");
+  const [tipeMobilRit, setTipeMobilRit] = useState("");
   const [gudangAsal, setGudangAsal] = useState("GUDANG PUSAT - KARAWANG");
   const [noPolisiKendaraan, setNoPolisiKendaraan] = useState("");
   const [namaSupir, setNamaSupir] = useState("");
@@ -30,7 +30,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
   // Selected Order IDs
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [statusScope, setStatusScope] = useState("DRAFT_PLANNING"); // 'DRAFT_PLANNING' | 'ALL_ACTIVE'
+  const [documentsByOrder, setDocumentsByOrder] = useState({});
 
   const [processing, setProcessing] = useState(false);
   const [actionSuccess, setActionSuccess] = useState(null);
@@ -39,12 +39,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
   // Available orders for consolidation
   const availableOrders = useMemo(() => {
     return orders.filter((o) => {
-      if (statusScope === "DRAFT_PLANNING") {
-        if (o.status !== "DRAFT" && o.status !== "PLANNING") return false;
-      } else {
-        // Can consolidate any uncompleted orders
-        if (o.status === "TERKIRIM" || o.status === "DITOLAK") return false;
-      }
+      if (o.status !== "DRAFT" && o.status !== "PLANNING") return false;
 
       if (searchFilter.trim()) {
         const q = searchFilter.toLowerCase();
@@ -56,14 +51,14 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
       }
       return true;
     });
-  }, [orders, statusScope, searchFilter]);
+  }, [orders, searchFilter]);
 
   // Selected items calculation
   const selectedOrders = useMemo(() => {
     return orders.filter((o) => selectedIds.includes(o.id));
   }, [orders, selectedIds]);
 
-  const totalKoli = useMemo(() => {
+  const totalKarung = useMemo(() => {
     return selectedOrders.reduce((sum, o) => sum + (Number(o.jumlahKoli) || 0), 0);
   }, [selectedOrders]);
 
@@ -84,6 +79,18 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
     );
   };
 
+  const updateDocument = (order, field, value) => {
+    setDocumentsByOrder((prev) => ({
+      ...prev,
+      [order.id]: {
+        noDocPerusahaan: prev[order.id]?.noDocPerusahaan ?? order.noDocPerusahaan ?? "",
+        tglDocPerusahaan: prev[order.id]?.tglDocPerusahaan ?? order.tglDocPerusahaan ?? "",
+        ...prev[order.id],
+        [field]: value,
+      },
+    }));
+  };
+
   const selectAll = () => {
     if (selectedIds.length === availableOrders.length && availableOrders.length > 0) {
       setSelectedIds([]);
@@ -101,9 +108,27 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
       return;
     }
 
-    if (!noPolisiKendaraan.trim() || !namaSupir.trim()) {
-      setActionError("Nomor Polisi Armada dan Nama Supir wajib diisi untuk 1 kali jalan ini.");
+    if (!noPolisiKendaraan.trim() || !namaSupir.trim() || !noSchedule.trim() || !tglSchedule || !tipeMobilRit.trim()) {
+      setActionError("No. Schedule, tanggal, tipe mobil/rit, nomor polisi, dan nama supir wajib diisi.");
       return;
+    }
+
+    const orderDocumentData = {};
+    for (const order of selectedOrders) {
+      const document = documentsByOrder[order.id] || order;
+      if (!document.noDocPerusahaan?.trim() || !document.tglDocPerusahaan) {
+        setActionError(`No. Doc dan tanggal surat jalan perusahaan wajib diisi untuk ${order.namaToko || order.noDO}.`);
+        return;
+      }
+      orderDocumentData[order.id] = {
+        noDocPerusahaan: document.noDocPerusahaan.trim(),
+        tglDocPerusahaan: document.tglDocPerusahaan,
+        salesman: document.salesman ?? order.salesman ?? "",
+        agen: document.agen ?? order.agen ?? "",
+        kota: document.kota ?? order.kota ?? "",
+        kecamatan: document.kecamatan ?? order.kecamatan ?? "",
+        keteranganDoc: document.keteranganDoc ?? order.keteranganDoc ?? "",
+      };
     }
 
     setProcessing(true);
@@ -117,6 +142,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
         noPolisiKendaraan: noPolisiKendaraan.toUpperCase().trim(),
         namaSupir: namaSupir.trim(),
         noHpSupir: noHpSupir.trim(),
+        orderDocumentData,
         submitToDirector,
       });
 
@@ -151,7 +177,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
             </h2>
             <p className="text-xs text-blue-200/90 max-w-3xl leading-relaxed">
               Pagi-pagi ketika truk armada diberangkatkan dari Karawang membawa muatan ke beberapa toko sekaligus,
-              Anda dapat menyatukan inputan tujuan tersebut di sini.
+              pilih rencana tujuan yang sudah diinput, lengkapi Schedule/Rit dan ketik No. Doc masing-masing dari surat jalan perusahaan.
               <strong className="text-white ml-1">
                 Direktur tetap meng-ACC pengiriman satu per satu tujuan
               </strong>
@@ -184,7 +210,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
           <p className="text-xs text-emerald-800">
             {actionSuccess.submitted
               ? "Semua tujuan terpilih telah diajukan ke Direktur. Direktur sekarang dapat meninjau dan meng-ACC satu per satu tujuan di halaman Approval."
-              : "Data jadwal & armada telah diperbarui pada draft pengiriman terpilih. Anda dapat melengkapi surat jalan pabrik sebelum diajukan ke Direktur."}
+              : "Schedule, armada, dan No. Doc perusahaan telah disimpan pada rencana terpilih. Rencana tetap berstatus draft sampai diajukan ke Direktur."}
           </p>
           <div className="pt-2 flex items-center gap-3">
             {actionSuccess.submitted ? (
@@ -231,7 +257,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-2 border-b pb-3 text-brand-dark font-semibold text-sm">
               <Truck size={18} className="text-blue-600" />
-              <span>Data Armada & Jadwal (1 Kali Jalan)</span>
+              <span>Langkah 2: Schedule, Rit & Armada</span>
             </div>
 
             <div className="space-y-3 text-xs">
@@ -247,34 +273,37 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">No. Schedule Pabrik</label>
+                  <label className="block font-semibold text-slate-700 mb-1">No. Schedule Pabrik *</label>
                   <input
                     type="text"
                     value={noSchedule}
                     onChange={(e) => setNoSchedule(e.target.value)}
-                    placeholder="S0794312/IX/2026"
+                    placeholder="Ketik nomor schedule dari perusahaan"
+                    required
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tgl. Berangkat</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Tgl. Schedule *</label>
                   <input
                     type="date"
                     value={tglSchedule}
                     onChange={(e) => setTglSchedule(e.target.value)}
+                    required
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Tipe Mobil / Rit</label>
+                <label className="block font-semibold text-slate-700 mb-1">Tipe Mobil / Rit *</label>
                 <input
                   type="text"
                   value={tipeMobilRit}
                   onChange={(e) => setTipeMobilRit(e.target.value)}
-                  placeholder="8 TON / Rit : 1"
+                  placeholder="Contoh: 8 TON / Rit : 1"
+                  required
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                 />
               </div>
@@ -328,7 +357,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Total Muatan Barang:</span>
-                <span className="font-bold text-purple-800">{totalKoli} Koli / Lembar</span>
+                <span className="font-bold text-purple-800">{totalKarung} Karung</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Total Ekspedisi Bruto:</span>
@@ -350,7 +379,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
               >
                 <Save size={14} />
                 <span>
-                  {processing ? "Memproses..." : "1. Satukan ke Armada (Simpan Draft)"}
+                  {processing ? "Memproses..." : "1. Simpan Schedule & No. Doc (Draft)"}
                 </span>
               </button>
 
@@ -378,13 +407,13 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>Pilih Tujuan Pengiriman untuk 1 Kali Jalan Ini</span>
+                  <span>Pilih Rencana & Lengkapi No. Doc per Tujuan</span>
                   <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
                     {availableOrders.length} Siap
                   </span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Centang toko/tujuan yang akan diangkut oleh armada ini pagi ini.
+                  Pilih pengiriman yang tercantum di schedule. Ketik No. Doc dan tanggal sesuai surat jalan perusahaan untuk setiap tujuan.
                 </p>
               </div>
 
@@ -419,14 +448,6 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none flex-1"
               />
 
-              <select
-                value={statusScope}
-                onChange={(e) => setStatusScope(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium focus:border-blue-500 focus:outline-none"
-              >
-                <option value="DRAFT_PLANNING">Hanya Draft & Planning</option>
-                <option value="ALL_ACTIVE">Semua Pengiriman Aktif</option>
-              </select>
             </div>
 
             {/* List Order Cards */}
@@ -445,8 +466,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
                   return (
                     <div
                       key={order.id}
-                      onClick={() => toggleSelect(order.id)}
-                      className={`cursor-pointer rounded-xl border p-3.5 transition flex items-start gap-3 text-xs ${
+                      className={`rounded-xl border p-3.5 transition flex items-start gap-3 text-xs ${
                         isChecked
                           ? "border-blue-500 bg-blue-50/50 shadow-xs"
                           : "border-slate-200 hover:border-blue-200 bg-white"
@@ -455,8 +475,9 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => {}} // Handled by parent div
-                        className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-0 shrink-0 pointer-events-none"
+                        onChange={() => toggleSelect(order.id)}
+                        aria-label={`Pilih ${order.namaToko || order.noDO}`}
+                        className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-0 shrink-0"
                       />
 
                       <div className="flex-1 space-y-1">
@@ -485,21 +506,89 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
 
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 pt-0.5">
                           <span>
-                            Muatan: <strong className="text-slate-700">{order.jumlahKoli || 0} Koli</strong> ({order.namaBarang || "-"})
+                            Muatan: <strong className="text-slate-700">{order.jumlahKoli || 0} Karung</strong> ({order.namaBarang || "-"})
                           </span>
-                          <span>
-                            Doc Pabrik:{" "}
-                            {order.noDocPerusahaan ? (
-                              <span className="font-mono font-semibold text-emerald-800">
-                                {order.noDocPerusahaan}
-                              </span>
-                            ) : (
-                              <span className="text-amber-600 font-normal italic">
-                                Belum turun (Draft)
-                              </span>
-                            )}
-                          </span>
+                          {isChecked && (
+                            <span className="text-blue-700 font-semibold">
+                              Tujuan dipilih untuk schedule ini
+                            </span>
+                          )}
                         </div>
+                        {isChecked && (
+                          <div className="mt-3 grid grid-cols-1 gap-3 border-t border-blue-100 pt-3 sm:grid-cols-2" onClick={(event) => event.stopPropagation()}>
+                            <label className="block">
+                              <span className="mb-1 block font-semibold text-slate-700">No. Doc Surat Jalan Perusahaan *</span>
+                              <input
+                                type="text"
+                                value={(documentsByOrder[order.id] || order).noDocPerusahaan || ""}
+                                onChange={(event) => updateDocument(order, "noDocPerusahaan", event.target.value)}
+                                placeholder="Ketik No. Doc dari dokumen perusahaan"
+                                required
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block font-semibold text-slate-700">Tanggal Doc *</span>
+                              <input
+                                type="date"
+                                value={(documentsByOrder[order.id] || order).tglDocPerusahaan || ""}
+                                onChange={(event) => updateDocument(order, "tglDocPerusahaan", event.target.value)}
+                                required
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block font-semibold text-slate-700">Salesman</span>
+                              <input
+                                type="text"
+                                value={(documentsByOrder[order.id] || order).salesman || ""}
+                                onChange={(event) => updateDocument(order, "salesman", event.target.value)}
+                                placeholder="Nama salesman"
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block font-semibold text-slate-700">Agen</span>
+                              <input
+                                type="text"
+                                value={(documentsByOrder[order.id] || order).agen || ""}
+                                onChange={(event) => updateDocument(order, "agen", event.target.value)}
+                                placeholder="Agen"
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block font-semibold text-slate-700">Kota / Kabupaten</span>
+                              <input
+                                type="text"
+                                value={(documentsByOrder[order.id] || order).kota || ""}
+                                onChange={(event) => updateDocument(order, "kota", event.target.value)}
+                                placeholder="Kota / kabupaten"
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block font-semibold text-slate-700">Kecamatan</span>
+                              <input
+                                type="text"
+                                value={(documentsByOrder[order.id] || order).kecamatan || ""}
+                                onChange={(event) => updateDocument(order, "kecamatan", event.target.value)}
+                                placeholder="Kecamatan"
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                            <label className="block sm:col-span-2">
+                              <span className="mb-1 block font-semibold text-slate-700">Keterangan / Orderan Merchant</span>
+                              <input
+                                type="text"
+                                value={(documentsByOrder[order.id] || order).keteranganDoc || ""}
+                                onChange={(event) => updateDocument(order, "keteranganDoc", event.target.value)}
+                                placeholder="Keterangan dari surat jalan perusahaan (opsional)"
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                              />
+                            </label>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

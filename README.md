@@ -98,13 +98,8 @@ npm install
 npm run dev
 ```
 
-Buka `http://localhost:3000`. Akun demo (dibuat otomatis saat pertama
-kali load):
-
-- **Direktur**: `direktur@ayt.co.id` / `direktur123`
-- **Admin**: `admin@ayt.co.id` / `admin123`
-
-Atau daftar akun baru lewat halaman Register.
+Buka URL lokal yang ditampilkan Vite. Tidak ada akun demo atau akun bawaan
+yang dibuat otomatis; daftarkan akun melalui halaman Register sebelum login.
 
 ## 6. Cara Import ke v0.dev (Vercel)
 
