@@ -26,5 +26,17 @@ export function useTarif() {
     return tarif;
   }, [loadTarif]);
 
-  return { tarifList, loading, createTarif, reload: loadTarif };
+  const updateTarif = useCallback(async (id, payload) => {
+    const tarif = await tarifApi.update(id, payload);
+    await loadTarif();
+    return tarif;
+  }, [loadTarif]);
+
+  const deleteTarif = useCallback(async (id) => {
+    const tarif = await tarifApi.remove(id);
+    await loadTarif();
+    return tarif;
+  }, [loadTarif]);
+
+  return { tarifList, loading, createTarif, updateTarif, deleteTarif, reload: loadTarif };
 }

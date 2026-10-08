@@ -159,61 +159,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
             </div>
           </div>
 
-          {/* 3. Daftar Muatan Barang */}
-          <div className="rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 border-b pb-2">
-              <Package size={15} className="text-purple-600" />
-              <span>3. Rincian Muatan Produk Barang</span>
-            </div>
-            {order.itemsBarang && order.itemsBarang.length > 0 ? (
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[11px]">
-                    <tr>
-                      <th className="px-3 py-2 w-10 text-center">No</th>
-                      <th className="px-3 py-2">Nama Produk / Material</th>
-                      <th className="px-3 py-2 text-center w-24">Jumlah (Qty)</th>
-                      <th className="px-3 py-2 text-center w-24">Satuan</th>
-                      <th className="px-3 py-2 text-right w-32">Harga Satuan</th>
-                      <th className="px-3 py-2 text-right w-32">Total Nilai</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {order.itemsBarang.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 text-center text-slate-500">{idx + 1}</td>
-                        <td className="px-3 py-2 font-semibold text-slate-900">{item.namaBarang}</td>
-                        <td className="px-3 py-2 text-center font-bold text-slate-900">{item.jumlah}</td>
-                        <td className="px-3 py-2 text-center text-slate-600">{item.satuan || "Karung"}</td>
-                        <td className="px-3 py-2 text-right font-mono text-slate-700">
-                          {item.hargaSatuan ? formatRupiah(item.hargaSatuan) : "-"}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-800">
-                          {item.hargaSatuan ? formatRupiah(Number(item.jumlah || 0) * Number(item.hargaSatuan || 0)) : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {order.totalNilaiBarang > 0 && (
-                    <tfoot className="border-t border-slate-200 bg-slate-50 font-bold">
-                      <tr>
-                        <td colSpan={4} className="px-3 py-2 text-right text-slate-600 uppercase text-[11px]">
-                          Total Nilai Muatan Barang:
-                        </td>
-                        <td colSpan={2} className="px-3 py-2 text-right text-emerald-800 font-mono text-xs">
-                          {formatRupiah(order.totalNilaiBarang)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-700 font-medium">{order.namaBarang || "-"} ({order.jumlahKoli || 0} Karung)</p>
-            )}
-          </div>
-
-          {/* 4. Rincian Tarif & PPh */}
+          {/* 3. Rincian Tarif & PPh */}
           <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 border-b pb-2">
               <MapPin size={15} className="text-emerald-600" />
@@ -230,7 +176,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
                 <p className="font-bold text-slate-900 mt-0.5">{formatRupiah(order.tarifPengiriman || 0)}</p>
               </div>
               <div>
-                <span className="text-slate-500">Potongan PPh 2%:</span>
+                <span className="text-slate-500">Uang Jalan Supir:</span>
                 <p className="font-bold text-red-600 mt-0.5">- {formatRupiah(order.nilaiPPh || 0)}</p>
               </div>
               <div>

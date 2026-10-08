@@ -29,10 +29,6 @@ export function DeliveryOrderForm({
     alamatLengkapTujuan: "",
     namaPenerima: "",
     noHpPenerima: "",
-    namaBarang: "",
-    jumlahKoli: 1,
-    beratBarangKg: 0,
-    catatanBarang: "",
   });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -62,10 +58,6 @@ export function DeliveryOrderForm({
         alamatLengkapTujuan: "",
         namaPenerima: "",
         noHpPenerima: "",
-        namaBarang: "",
-        jumlahKoli: 1,
-        beratBarangKg: 0,
-        catatanBarang: "",
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan data");
@@ -160,48 +152,9 @@ export function DeliveryOrderForm({
 
         {tarifTerpilih && (
           <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-            Biaya ekspedisi: <b>{formatRupiah(tarifTerpilih.total)}</b> &middot;
-            {" "}Setelah PPh 2%:{" "}
-            <b>{formatRupiah(tarifTerpilih.totalSetelahPPh)}</b>
+            Tarif jasa pengiriman: <b>{formatRupiah(tarifTerpilih.total || tarifTerpilih.totalSetelahPPh || 0)}</b>
           </div>
         )}
-      </div>
-
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-slate-800">
-          Data Barang
-        </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Input
-            label="Nama Barang"
-            required
-            value={form.namaBarang}
-            onChange={(e) => update("namaBarang", e.target.value)}
-          />
-          <Input
-            label="Jumlah Karung"
-            type="number"
-            min={1}
-            required
-            value={form.jumlahKoli}
-            onChange={(e) => update("jumlahKoli", Number(e.target.value))}
-          />
-          <Input
-            label="Berat Barang (kg)"
-            type="number"
-            min={0}
-            required
-            value={form.beratBarangKg}
-            onChange={(e) => update("beratBarangKg", Number(e.target.value))}
-          />
-        </div>
-        <div className="mt-4">
-          <Input
-            label="Catatan Barang (opsional)"
-            value={form.catatanBarang}
-            onChange={(e) => update("catatanBarang", e.target.value)}
-          />
-        </div>
       </div>
 
       <Button type="submit" disabled={submitting}>

@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, Package, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, MapPin, Truck, UserRound } from "lucide-react";
 import { useTarif } from "../../hooks/useTarif";
 import { formatRupiah } from "../../utils/format";
-
-const EMPTY_ITEM = { namaBarang: "", jumlah: 1, satuan: "Karung", hargaSatuan: 0 };
 
 export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
   const { tarifList, loading: loadingTarif } = useTarif();
@@ -12,9 +10,12 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
     noHpPenerima: "",
     alamatLengkapTujuan: "",
     tarifId: "",
-    itemsBarang: [{ ...EMPTY_ITEM }],
-    beratBarangKg: "",
-    catatanBarang: "",
+    noSchedule: "",
+    tglSchedule: "",
+    tipeMobilRit: "",
+    noPolisiKendaraan: "",
+    namaSupir: "",
+    noHpSupir: "",
   });
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -23,34 +24,22 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
     () => tarifList.find((tarif) => tarif.id === form.tarifId),
     [tarifList, form.tarifId]
   );
-  const totalKarung = form.itemsBarang.reduce(
-    (total, item) => total + (Number(item.jumlah) || 0),
-    0
-  );
-  const totalNilaiBarang = form.itemsBarang.reduce(
-    (total, item) => total + (Number(item.jumlah) || 0) * (Number(item.hargaSatuan) || 0),
-    0
-  );
-
-  const updateItem = (index, field, value) => {
-    setForm((current) => ({
-      ...current,
-      itemsBarang: current.itemsBarang.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError(null);
     setSuccessMessage(null);
 
-    const itemsBarang = form.itemsBarang.filter(
-      (item) => item.namaBarang.trim() && Number(item.jumlah) > 0
-    );
-    if (!form.tarifId || !form.namaToko.trim() || itemsBarang.length === 0) {
-      setError("Tujuan, nama toko/depo, dan minimal satu rincian barang wajib diisi.");
+    if (
+      !form.tarifId ||
+      !form.namaToko.trim() ||
+      !form.noSchedule.trim() ||
+      !form.tglSchedule ||
+      !form.tipeMobilRit.trim() ||
+      !form.noPolisiKendaraan.trim() ||
+      !form.namaSupir.trim()
+    ) {
+      setError("Tujuan, nama toko/depo, No. Schedule, tanggal, tipe mobil, No. Polisi, dan nama supir wajib diisi.");
       return;
     }
 
@@ -62,27 +51,26 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
         alamatLengkapTujuan: form.alamatLengkapTujuan.trim(),
         kota: tarifTerpilih?.tujuanKirim || "",
         tarifId: form.tarifId,
-        itemsBarang,
-        namaBarang: itemsBarang
-          .map((item) => `${item.namaBarang} (${item.jumlah} ${item.satuan || "Karung"})`)
-          .join(", "),
-        jumlahKoli: itemsBarang.reduce((total, item) => total + Number(item.jumlah), 0),
-        totalNilaiBarang,
-        beratBarangKg: Number(form.beratBarangKg) || 0,
-        catatanBarang: form.catatanBarang.trim(),
+        noSchedule: form.noSchedule.trim(),
+        tglSchedule: form.tglSchedule,
+        tipeMobilRit: form.tipeMobilRit.trim(),
+        noPolisiKendaraan: form.noPolisiKendaraan.trim(),
+        namaSupir: form.namaSupir.trim(),
+        noHpSupir: form.noHpSupir.trim(),
         status: "DRAFT",
       });
-      setSuccessMessage(
-        "Rencana tersimpan. Pada langkah 2, pilih rencana ini untuk mengisi schedule/rit dan No. Doc sesuai surat jalan perusahaan."
-      );
+      setSuccessMessage("Data tujuan, schedule, armada, dan supir berhasil disimpan. Rencana siap untuk proses selanjutnya.");
       setForm({
         namaToko: "",
         noHpPenerima: "",
         alamatLengkapTujuan: "",
         tarifId: "",
-        itemsBarang: [{ ...EMPTY_ITEM }],
-        beratBarangKg: "",
-        catatanBarang: "",
+        noSchedule: "",
+        tglSchedule: "",
+        tipeMobilRit: "",
+        noPolisiKendaraan: "",
+        namaSupir: "",
+        noHpSupir: "",
       });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Gagal menyimpan rencana pengiriman");
@@ -109,8 +97,8 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
             <MapPin size={20} />
           </span>
           <div>
-            <h2 className="font-bold text-slate-900">Langkah 1: Rencana Tujuan</h2>
-            <p className="text-xs text-slate-500">Catat tujuan dan muatan yang akan dikirim.</p>
+            <h2 className="font-bold text-slate-900">Data Tujuan & Rute</h2>
+            <p className="text-xs text-slate-500">Isi tujuan pengiriman dan jadwal operasional utama.</p>
           </div>
         </div>
 
@@ -144,6 +132,7 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
+
           <label className="block text-xs font-semibold text-slate-700">
             No. HP Toko / Penerima
             <input
@@ -154,6 +143,7 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
+
           <label className="block text-xs font-semibold text-slate-700 md:col-span-2">
             Alamat Lengkap Tujuan
             <textarea
@@ -181,127 +171,100 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
-              <Package size={20} />
-            </span>
-            <div>
-              <h2 className="font-bold text-slate-900">Rincian Barang</h2>
-              <p className="text-xs text-slate-500">Tambahkan semua jenis barang dan jumlah karung.</p>
-            </div>
+        <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+            <Truck size={20} />
+          </span>
+          <div>
+            <h2 className="font-bold text-slate-900">Data Supir & Armada</h2>
+            <p className="text-xs text-slate-500">Schedule, armada, dan supir diinput di satu halaman agar lebih struktur.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setForm((current) => ({
-              ...current,
-              itemsBarang: [...current.itemsBarang, { ...EMPTY_ITEM }],
-            }))}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
-          >
-            <Plus size={15} />
-            Tambah barang
-          </button>
         </div>
 
-        <div className="space-y-3">
-          {form.itemsBarang.map((item, index) => (
-            <div key={index} className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-12 sm:items-end">
-              <label className="block text-xs font-semibold text-slate-700 sm:col-span-5">
-                Nama barang *
-                <input
-                  type="text"
-                  value={item.namaBarang}
-                  onChange={(event) => updateItem(index, "namaBarang", event.target.value)}
-                  placeholder="Contoh: Beras premium"
-                  required
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none"
-                />
-              </label>
-              <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">
-                Jumlah *
-                <input
-                  type="number"
-                  min="1"
-                  value={item.jumlah}
-                  onChange={(event) => updateItem(index, "jumlah", Number(event.target.value))}
-                  required
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </label>
-              <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">
-                Satuan
-                <input
-                  type="text"
-                  value={item.satuan}
-                  onChange={(event) => updateItem(index, "satuan", event.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none"
-                />
-              </label>
-              <label className="block text-xs font-semibold text-slate-700 sm:col-span-2">
-                Harga / satuan
-                <input
-                  type="number"
-                  min="0"
-                  value={item.hargaSatuan || ""}
-                  onChange={(event) => updateItem(index, "hargaSatuan", Number(event.target.value) || 0)}
-                  placeholder="Opsional"
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none"
-                />
-              </label>
-              <div className="flex justify-end sm:col-span-1">
-                <button
-                  type="button"
-                  disabled={form.itemsBarang.length === 1}
-                  onClick={() => setForm((current) => ({
-                    ...current,
-                    itemsBarang: current.itemsBarang.filter((_, itemIndex) => itemIndex !== index),
-                  }))}
-                  aria-label={`Hapus barang ${index + 1}`}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <label className="block text-xs font-semibold text-slate-700">
-            Berat total (kg)
-            <input
-              type="number"
-              min="0"
-              value={form.beratBarangKg}
-              onChange={(event) => setForm((current) => ({ ...current, beratBarangKg: event.target.value }))}
-              placeholder="Opsional"
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none"
-            />
-          </label>
-          <label className="block text-xs font-semibold text-slate-700">
-            Catatan barang
+            No. Schedule *
             <input
               type="text"
-              value={form.catatanBarang}
-              onChange={(event) => setForm((current) => ({ ...current, catatanBarang: event.target.value }))}
-              placeholder="Opsional"
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal focus:border-blue-500 focus:outline-none"
+              value={form.noSchedule}
+              onChange={(event) => setForm((current) => ({ ...current, noSchedule: event.target.value }))}
+              placeholder="Nomor schedule"
+              required
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm">
-          <span className="font-semibold text-slate-600">Total muatan: <strong className="text-purple-800">{totalKarung} karung</strong></span>
-          <span className="font-semibold text-slate-600">Total nilai barang: <strong className="text-emerald-800">{formatRupiah(totalNilaiBarang)}</strong></span>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            Tanggal Schedule *
+            <input
+              type="date"
+              value={form.tglSchedule}
+              onChange={(event) => setForm((current) => ({ ...current, tglSchedule: event.target.value }))}
+              required
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            Tipe Mobil / Rit *
+            <input
+              type="text"
+              value={form.tipeMobilRit}
+              onChange={(event) => setForm((current) => ({ ...current, tipeMobilRit: event.target.value }))}
+              placeholder="Contoh: 8 Ton / Rit 1"
+              required
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            No. Polisi Armada *
+            <input
+              type="text"
+              value={form.noPolisiKendaraan}
+              onChange={(event) => setForm((current) => ({ ...current, noPolisiKendaraan: event.target.value }))}
+              placeholder="Contoh: B 9482 KDA"
+              required
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            Nama Supir *
+            <input
+              type="text"
+              value={form.namaSupir}
+              onChange={(event) => setForm((current) => ({ ...current, namaSupir: event.target.value }))}
+              placeholder="Nama supir"
+              required
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="block text-xs font-semibold text-slate-700">
+            No. HP Supir
+            <input
+              type="tel"
+              value={form.noHpSupir}
+              onChange={(event) => setForm((current) => ({ ...current, noHpSupir: event.target.value }))}
+              placeholder="Nomor telepon supir"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
         </div>
       </div>
 
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-        <p className="font-semibold">Langkah 1 dari 2</p>
+        <div className="flex items-center gap-2 font-semibold">
+          <UserRound size={16} />
+          <span>Format alur baru</span>
+        </div>
         <p className="mt-1 text-blue-800">
-          Rencana disimpan terlebih dahulu. Pada langkah 2, pilih rencana ini untuk mengisi No. Schedule, rit/armada, dan No. Doc yang diketik sesuai surat jalan perusahaan. No. Doc wajib sebelum pengajuan ke Direktur.
+          Semua data utama seperti tujuan, schedule, armada, dan supir diisi di halaman ini agar alur pengiriman lebih terstruktur dan mudah diikuti.
         </p>
       </div>
+
       <button
         type="submit"
         disabled={submitting || loadingTarif}

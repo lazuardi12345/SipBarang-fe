@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { CompanyDeliveryOrderForm } from "../components/delivery-order/CompanyDeliveryOrderForm";
-import { ConsolidateRunPanel } from "../components/delivery-order/ConsolidateRunPanel";
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { Modal } from "../components/ui/Modal";
@@ -20,13 +19,14 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
-  Layers
+  Layers,
+  Trash2
 } from "lucide-react";
 
 export default function DeliveryOrderPage() {
   const navigate = useNavigate();
-  const { orders, loading, error, refresh, create, submitToDirector, consolidateRun } = useDeliveryOrders();
-  const [activeTab, setActiveTab] = useState("input"); // 'input' | 'satu_jalan' | 'draft' | 'all'
+  const { orders, loading, error, refresh, create, submitToDirector, consolidateRun, remove } = useDeliveryOrders();
+  const [activeTab, setActiveTab] = useState("input"); // 'input' | 'draft' | 'all'
   const [submitting, setSubmitting] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -71,7 +71,7 @@ export default function DeliveryOrderPage() {
     setSubmitting(true);
     try {
       await create(input);
-      setActiveTab("satu_jalan");
+      setActiveTab("input");
     } finally {
       setSubmitting(false);
     }
@@ -170,6 +170,20 @@ export default function DeliveryOrderPage() {
     }
   };
 
+  const handleDeleteOrder = async (order) => {
+    if (!order) return;
+    const ok = window.confirm(`Hapus pengiriman ${order.noDO}? Tindakan ini tidak bisa dibatalkan.`);
+    if (!ok) return;
+
+    try {
+      await remove(order.id);
+      await refresh();
+      alert(`Pengiriman ${order.noDO} berhasil dihapus.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal menghapus pengiriman");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -180,7 +194,7 @@ export default function DeliveryOrderPage() {
             Input & Manajemen Pengiriman
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Catat tujuan dan barang terlebih dahulu, lalu lengkapi schedule/rit serta No. Doc dari surat jalan perusahaan sebelum diajukan ke Direktur.
+            Catat tujuan, jadwal, armada, dan data supir langsung di halaman pertama agar alur pengiriman lebih singkat dan lebih terstruktur.
           </p>
         </div>
 
@@ -197,19 +211,6 @@ export default function DeliveryOrderPage() {
           >
             <PlusCircle size={15} />
             1. Rencana Tujuan
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("satu_jalan")}
-            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition ${
-              activeTab === "satu_jalan"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Layers size={15} />
-            <span>2. Schedule & No. Doc</span>
           </button>
 
           <button
@@ -259,17 +260,6 @@ export default function DeliveryOrderPage() {
       {/* TAB 1: FORM INPUT */}
       {activeTab === "input" && (
         <CompanyDeliveryOrderForm onSubmit={handleCreateOrder} submitting={submitting} />
-      )}
-
-      {/* TAB 2: SATUKAN 1 KALI JALAN (RIT ARMADA) */}
-      {activeTab === "satu_jalan" && (
-        <ConsolidateRunPanel
-          orders={orders}
-          onConsolidate={consolidateRun}
-          loading={loading}
-          onGoToApproval={() => navigate("/dashboard/approval")}
-          onGoToDrafts={() => setActiveTab("draft")}
-        />
       )}
 
       {/* TAB 2: DAFTAR DRAFT (TUNGGU SURAT JALAN) */}
@@ -555,6 +545,17 @@ export default function DeliveryOrderPage() {
                             >
                               <Send size={11} />
                               Ajukan
+                            </button>
+                          )}
+
+                          {(order.status === "DRAFT" || order.status === "PLANNING") && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOrder(order)}
+                              className="inline-flex items-center justify-center rounded-lg bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 transition"
+                              title="Hapus data pengiriman"
+                            >
+                              <Trash2 size={11} />
                             </button>
                           )}
                         </div>

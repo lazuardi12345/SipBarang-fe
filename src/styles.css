@@ -90,7 +90,8 @@ body {
     font-size: 14pt !important;
   }
 
-  .no-print {
+  .no-print,
+  .print-hidden {
     display: none !important;
   }
 

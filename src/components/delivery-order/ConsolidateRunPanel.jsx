@@ -58,10 +58,6 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
     return orders.filter((o) => selectedIds.includes(o.id));
   }, [orders, selectedIds]);
 
-  const totalKarung = useMemo(() => {
-    return selectedOrders.reduce((sum, o) => sum + (Number(o.jumlahKoli) || 0), 0);
-  }, [selectedOrders]);
-
   const totalBruto = useMemo(() => {
     return selectedOrders.reduce(
       (sum, o) => sum + (Number(o.biayaEkspedisi ?? o.tarifPengiriman) || 0),
@@ -176,7 +172,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
               Satukan Pengiriman ke 1 Kali Jalan (1 Rit Armada)
             </h2>
             <p className="text-xs text-blue-200/90 max-w-3xl leading-relaxed">
-              Pagi-pagi ketika truk armada diberangkatkan dari Karawang membawa muatan ke beberapa toko sekaligus,
+              Pagi-pagi ketika truk armada diberangkatkan dari Karawang untuk menjemput beberapa tujuan sekaligus,
               pilih rencana tujuan yang sudah diinput, lengkapi Schedule/Rit dan ketik No. Doc masing-masing dari surat jalan perusahaan.
               <strong className="text-white ml-1">
                 Direktur tetap meng-ACC pengiriman satu per satu tujuan
@@ -250,158 +246,13 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
         </div>
       )}
 
-      {/* Grid: Form Armada Jalan (Kiri) & Pilihan Pengiriman (Kanan) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* KOLOM KIRI (5 cols): Data Armada & Jadwal Rit */}
-        <div className="lg:col-span-5 space-y-5">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 border-b pb-3 text-brand-dark font-semibold text-sm">
-              <Truck size={18} className="text-blue-600" />
-              <span>Langkah 2: Schedule, Rit & Armada</span>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Gudang Asal</label>
-                <input
-                  type="text"
-                  value={gudangAsal}
-                  onChange={(e) => setGudangAsal(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">No. Schedule Pabrik *</label>
-                  <input
-                    type="text"
-                    value={noSchedule}
-                    onChange={(e) => setNoSchedule(e.target.value)}
-                    placeholder="Ketik nomor schedule dari perusahaan"
-                    required
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tgl. Schedule *</label>
-                  <input
-                    type="date"
-                    value={tglSchedule}
-                    onChange={(e) => setTglSchedule(e.target.value)}
-                    required
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Tipe Mobil / Rit *</label>
-                <input
-                  type="text"
-                  value={tipeMobilRit}
-                  onChange={(e) => setTipeMobilRit(e.target.value)}
-                  placeholder="Contoh: 8 TON / Rit : 1"
-                  required
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    No. Polisi Armada *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="B 9482 KDA"
-                    value={noPolisiKendaraan}
-                    onChange={(e) => setNoPolisiKendaraan(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold uppercase focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nama Supir *</label>
-                  <input
-                    type="text"
-                    placeholder="Nama Supir"
-                    value={namaSupir}
-                    onChange={(e) => setNamaSupir(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">No. HP Supir</label>
-                <input
-                  type="text"
-                  placeholder="0812xxxx"
-                  value={noHpSupir}
-                  onChange={(e) => setNoHpSupir(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Live Summary Box */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2.5 text-xs pt-3">
-              <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">
-                Ringkasan Muatan 1 Kali Jalan:
-              </span>
-              <div className="flex justify-between text-slate-600">
-                <span>Toko Tujuan Terpilih:</span>
-                <span className="font-bold text-slate-900">{selectedOrders.length} Lokasi</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Total Muatan Barang:</span>
-                <span className="font-bold text-purple-800">{totalKarung} Karung</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Total Ekspedisi Bruto:</span>
-                <span className="font-semibold text-slate-800">{formatRupiah(totalBruto)}</span>
-              </div>
-              <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-bold text-blue-950">
-                <span>Total Tagihan Bersih:</span>
-                <span className="font-black text-emerald-800">{formatRupiah(totalBersih)}</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2 pt-2">
-              <button
-                type="button"
-                disabled={processing || selectedIds.length === 0}
-                onClick={() => handleExecuteConsolidate(false)}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-900 shadow-sm transition disabled:opacity-40"
-              >
-                <Save size={14} />
-                <span>
-                  {processing ? "Memproses..." : "1. Simpan Schedule & No. Doc (Draft)"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                disabled={processing || selectedIds.length === 0}
-                onClick={() => handleExecuteConsolidate(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2.5 text-xs font-bold text-white hover:from-amber-600 hover:to-amber-700 shadow-md transition disabled:opacity-40"
-              >
-                <Send size={14} />
-                <span>
-                  {processing ? "Memproses..." : "2. Satukan & Langsung Ajukan ke Direktur (ACC)"}
-                </span>
-              </button>
-              <p className="text-[10px] text-slate-400 text-center">
-                * Direktur tetap memeriksa dan meng-ACC setiap tujuan secara individual.
-              </p>
-            </div>
-          </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <Truck size={18} className="text-blue-600" />
+          <span>Jadwal, armada, dan dokumen utama sudah dikelola di halaman pertama.</span>
         </div>
+      </div>
 
-        {/* KOLOM KANAN (7 cols): Checklist Daftar Pengiriman untuk Disatukan */}
         <div className="lg:col-span-7 space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
@@ -505,9 +356,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 pt-0.5">
-                          <span>
-                            Muatan: <strong className="text-slate-700">{order.jumlahKoli || 0} Karung</strong> ({order.namaBarang || "-"})
-                          </span>
+                          <span>Tujuan dipilih untuk pengiriman ini.</span>
                           {isChecked && (
                             <span className="text-blue-700 font-semibold">
                               Tujuan dipilih untuk schedule ini

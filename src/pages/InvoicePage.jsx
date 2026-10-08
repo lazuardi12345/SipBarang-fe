@@ -49,6 +49,7 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
   const [alamatPelanggan, setAlamatPelanggan] = useState(
     "Kawasan Industri KIIC, Jl. Maligi Raya Lot Q-2A, Karawang Barat"
   );
+  const [noInvoice, setNoInvoice] = useState("");
   const [noPoCustomer, setNoPoCustomer] = useState("");
   const [selected, setSelected] = useState([]);
   const [searchFilter, setSearchFilter] = useState("");
@@ -99,11 +100,13 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
     setSubmitting(true);
     try {
       await onSubmit({
+        noInvoice: noInvoice.trim() || undefined,
         namaPelanggan,
         alamatPelanggan,
         noPoCustomer,
         deliveryOrderIds: selected,
       });
+      setNoInvoice("");
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal membuat invoice");
@@ -164,6 +167,18 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
               onChange={(e) => setNamaPelanggan(e.target.value)}
               placeholder="Contoh: PT GRC BOARD INDONESIA"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Nomor Invoice / Faktur (Opsional)
+            </label>
+            <input
+              value={noInvoice}
+              onChange={(e) => setNoInvoice(e.target.value)}
+              placeholder="Contoh: INV/AYT/2026/0001"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none font-mono"
             />
           </div>
 

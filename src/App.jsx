@@ -13,6 +13,7 @@ import TarifPage from './pages/TarifPage';
 import Layout from './components/Layout';
 import { RoleGuard } from './components/layout/RoleGuard';
 import { UserRole } from './utils/constants';
+import { APP_ROUTES } from './config/app';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -31,12 +32,12 @@ function PrivateRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/" element={<Navigate to={APP_ROUTES.home} replace />} />
+      <Route path={APP_ROUTES.login} element={<LoginPage />} />
+      <Route path={APP_ROUTES.register} element={<RegisterPage />} />
 
       <Route
-        path="/dashboard"
+        path={APP_ROUTES.dashboard}
         element={
           <PrivateRoute>
             <Layout>
@@ -46,7 +47,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/pengiriman"
+        path={APP_ROUTES.pengiriman}
         element={
           <PrivateRoute>
             <Layout>
@@ -58,7 +59,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/master-tujuan"
+        path={APP_ROUTES.masterTujuan}
         element={
           <PrivateRoute>
             <Layout>
@@ -70,7 +71,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/draft-surat-jalan"
+        path={APP_ROUTES.draftSuratJalan}
         element={
           <PrivateRoute>
             <Layout>
@@ -82,7 +83,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/approval"
+        path={APP_ROUTES.approval}
         element={
           <PrivateRoute>
             <Layout>
@@ -94,7 +95,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/pelaporan"
+        path={APP_ROUTES.pelaporan}
         element={
           <PrivateRoute>
             <Layout>
@@ -106,7 +107,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/riwayat"
+        path={APP_ROUTES.riwayat}
         element={
           <PrivateRoute>
             <Layout>
@@ -116,7 +117,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/dashboard/invoice"
+        path={APP_ROUTES.invoice}
         element={
           <PrivateRoute>
             <Layout>

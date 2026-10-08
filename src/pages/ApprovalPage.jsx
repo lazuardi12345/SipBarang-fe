@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 export default function ApprovalPage() {
-  const { orders, loading, refresh, setujui, tolak, konfirmasiTerkirim } = useDeliveryOrders();
+  const { orders, loading, refresh, revise, remove, setujui, tolak, konfirmasiTerkirim } = useDeliveryOrders();
   const { user } = useAuth();
 
   // Tab: 'MENUNGGU_ACC' | 'MENUNGGU_KONFIRMASI' | 'DISETUJUI' | 'TERKIRIM' | 'DITOLAK'
@@ -79,6 +79,10 @@ export default function ApprovalPage() {
         await setujui(approvalModal.order.id, user?.nama || "Direktur", approvalModal.note);
       } else if (approvalModal.type === "confirm_delivered") {
         await konfirmasiTerkirim(approvalModal.order.id, approvalModal.note);
+      } else if (approvalModal.type === "revise") {
+        await revise(approvalModal.order.id, approvalModal.note);
+      } else if (approvalModal.type === "delete") {
+        await remove(approvalModal.order.id);
       } else {
         await tolak(approvalModal.order.id, user?.nama || "Direktur", approvalModal.note);
       }
@@ -89,6 +93,24 @@ export default function ApprovalPage() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleRevise = (order) => {
+    setApprovalModal({
+      open: true,
+      order,
+      type: "revise",
+      note: "Pengajuan dikembalikan untuk revisi data pengiriman.",
+    });
+  };
+
+  const handleDelete = (order) => {
+    setApprovalModal({
+      open: true,
+      order,
+      type: "delete",
+      note: "Hapus pengajuan ini dari daftar pengiriman.",
+    });
   };
 
   return (
@@ -196,7 +218,7 @@ export default function ApprovalPage() {
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {activeTab === "MENUNGGU_ACC" &&
-              "Periksa nomor surat jalan dari pabrik, rincian muatan, dan armada sebelum memberikan persetujuan berangkat."}
+              "Periksa nomor surat jalan dari pabrik dan armada sebelum memberikan persetujuan berangkat."}
             {activeTab === "MENUNGGU_KONFIRMASI" &&
               "Admin/Supir telah melaporkan barang sampai di toko tujuan. Konfirmasi untuk menandai pengiriman selesai."}
             {activeTab === "DISETUJUI" &&
@@ -238,7 +260,7 @@ export default function ApprovalPage() {
                   <div className="flex items-center gap-3">
                     <StatusBadge status={order.status} />
                     <span className="text-sm font-extrabold text-emerald-700">
-                      {formatRupiah(order.totalSetelahPPh)}
+                      {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
                     </span>
                   </div>
                 </div>
@@ -261,8 +283,7 @@ export default function ApprovalPage() {
                       [{order.areaDistribusi}] {order.tujuanKirim}
                     </p>
                     <p className="text-slate-500 mt-0.5">
-                      Ekspedisi: {formatRupiah(order.biayaEkspedisi)} (PPh 2%:{" "}
-                      {formatRupiah(order.biayaEkspedisi - order.totalSetelahPPh)})
+                      Ekspedisi: {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
                     </p>
                   </div>
 
@@ -306,18 +327,7 @@ export default function ApprovalPage() {
                   </div>
                 )}
 
-                {/* Muatan Barang Singkat */}
-                <div className="mt-3 rounded-lg bg-slate-50 p-2.5 text-xs flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="font-semibold text-slate-700">Muatan Barang: </span>
-                    <span className="text-slate-600">
-                      {order.itemsBarang && order.itemsBarang.length > 0
-                        ? order.itemsBarang
-                            .map((i) => `${i.namaBarang} (${i.jumlah} ${i.satuan || "Karung"})`)
-                            .join(" • ")
-                        : order.namaBarang || "-"}
-                    </span>
-                  </div>
+                <div className="mt-3 rounded-lg bg-slate-50 p-2.5 text-xs flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedOrder(order)}
@@ -331,6 +341,22 @@ export default function ApprovalPage() {
                 {/* Gate 1 Action Buttons: MENUNGGU_ACC (ACC Berangkat) */}
                 {order.status === "MENUNGGU_ACC" && (
                   <div className="mt-4 pt-3 border-t flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleRevise(order)}
+                      className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition"
+                    >
+                      <FileText size={15} />
+                      Revisi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(order)}
+                      className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
+                    >
+                      <XCircle size={15} />
+                      Hapus
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleOpenAction(order, "reject")}
@@ -385,6 +411,10 @@ export default function ApprovalPage() {
               ? "ACC Persetujuan Berangkat (Gate 1)"
               : approvalModal.type === "confirm_delivered"
               ? "ACC Konfirmasi Terkirim (Gate 2)"
+              : approvalModal.type === "revise"
+              ? "Revisi Data Pengiriman"
+              : approvalModal.type === "delete"
+              ? "Hapus Pengajuan"
               : "Tolak Pengiriman / Laporan"
           }
           onClose={() => setApprovalModal({ open: false, order: null, type: "approve", note: "" })}
@@ -421,6 +451,8 @@ export default function ApprovalPage() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 {approvalModal.type === "reject"
                   ? "Alasan Penolakan (Wajib Diisi) *"
+                  : approvalModal.type === "delete"
+                  ? "Konfirmasi penghapusan"
                   : "Catatan Direktur (Opsional)"}
               </label>
               <textarea
@@ -430,6 +462,10 @@ export default function ApprovalPage() {
                     ? "Instruksi khusus untuk supir sebelum jalan (opsional)..."
                     : approvalModal.type === "confirm_delivered"
                     ? "Catatan konfirmasi selesai / verifikasi dokumen..."
+                    : approvalModal.type === "revise"
+                    ? "Catatan revisi data pengiriman..."
+                    : approvalModal.type === "delete"
+                    ? "Alasan penghapusan atau catatan revisi..."
                     : "Tuliskan alasan penolakan..."
                 }
                 value={approvalModal.note}
@@ -467,6 +503,10 @@ export default function ApprovalPage() {
                   ? "Konfirmasi ACC Berangkat"
                   : approvalModal.type === "confirm_delivered"
                   ? "Konfirmasi Terkirim Selesai"
+                  : approvalModal.type === "revise"
+                  ? "Konfirmasi Revisi"
+                  : approvalModal.type === "delete"
+                  ? "Hapus Pengajuan"
                   : "Konfirmasi Tolak"}
               </button>
             </div>

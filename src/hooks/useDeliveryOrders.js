@@ -121,6 +121,36 @@ export function useDeliveryOrders() {
     [refresh]
   );
 
+  const revise = useCallback(
+    async (orderId, note = "") => {
+      setError(null);
+      try {
+        await deliveryOrderApi.revise(orderId, note);
+        await refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Gagal merevisi pengiriman";
+        setError(msg);
+        throw e;
+      }
+    },
+    [refresh]
+  );
+
+  const remove = useCallback(
+    async (orderId) => {
+      setError(null);
+      try {
+        await deliveryOrderApi.remove(orderId);
+        await refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Gagal menghapus pengiriman";
+        setError(msg);
+        throw e;
+      }
+    },
+    [refresh]
+  );
+
   const konfirmasiTerkirim = useCallback(
     async (orderId, catatan = "") => {
       setError(null);
@@ -160,6 +190,8 @@ export function useDeliveryOrders() {
     create,
     consolidateRun,
     attachDocPerusahaan,
+    revise,
+    remove,
     setujui,
     tolak,
     laporkanTerkirim,

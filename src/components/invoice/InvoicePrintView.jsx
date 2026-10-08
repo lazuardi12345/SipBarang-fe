@@ -7,6 +7,10 @@ import {
 import { formatRupiah, formatTanggal } from "../../utils/format";
 
 export function InvoicePrintView({ invoice }) {
+  const totalBruto = Number(invoice.subtotal || 0);
+  const totalPPh2 = Number(invoice.totalPPh2 ?? invoice.totalPPh ?? totalBruto * 0.02 ?? 0);
+  const totalTagihan = Number(invoice.totalTagihan ?? invoice.totalBersih ?? (totalBruto - totalPPh2) ?? 0);
+
   return (
     <div className="mx-auto w-full max-w-3xl bg-white p-10 print:p-0 print:shadow-none" id="invoice-print-area">
       {/* Kop Surat */}
@@ -67,8 +71,8 @@ export function InvoicePrintView({ invoice }) {
             <th className="py-2 pr-2">Tujuan Kirim</th>
             <th className="py-2 pr-2">Tanggal</th>
             <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2 text-right">PPh 2%</th>
-            <th className="py-2 pl-2 text-right">Total - PPh 2%</th>
+            <th className="py-2 pr-2 text-right">Uang Jalan Supir</th>
+            <th className="py-2 pl-2 text-right">Total Netto</th>
           </tr>
         </thead>
         <tbody>
@@ -91,24 +95,32 @@ export function InvoicePrintView({ invoice }) {
 
       {/* Ringkasan */}
       <div className="mt-4 flex justify-end">
-        <div className="w-64 space-y-1 text-sm">
+        <div className="w-72 space-y-1.5 text-sm">
           <div className="flex justify-between text-slate-600">
-            <span>Subtotal</span>
-            <span>{formatRupiah(invoice.subtotal)}</span>
+            <span>Bruto Total</span>
+            <span>{formatRupiah(totalBruto)}</span>
           </div>
           <div className="flex justify-between text-slate-600">
-            <span>Total PPh 2%</span>
-            <span>- {formatRupiah(invoice.totalPPh2)}</span>
+            <span>Potongan PPh 2%</span>
+            <span>- {formatRupiah(totalPPh2)}</span>
+          </div>
+          <div className="flex justify-between text-slate-500 text-xs italic">
+            <span>Uang Jalan Supir</span>
+            <span>tidak masuk tagihan</span>
           </div>
           <div className="flex justify-between border-t border-slate-300 pt-1 text-base font-bold text-slate-900">
             <span>Total Tagihan</span>
-            <span>{formatRupiah(invoice.totalTagihan)}</span>
+            <span>{formatRupiah(totalTagihan)}</span>
           </div>
         </div>
       </div>
 
+      <p className="mt-3 text-xs italic text-amber-700">
+        Catatan: pengurangan PPh 2% dihitung dari total bruto. Uang jalan supir tidak dipotong dari penagihan pelanggan dan dicatat sebagai biaya operasional internal.
+      </p>
+
       {/* Tanda tangan */}
-      <div className="mt-16 flex justify-end">
+      <div className="mt-20 flex justify-end">
         <div className="text-center text-sm text-slate-600">
           <p>Hormat kami,</p>
           <div className="mt-16 border-t border-slate-400 pt-1">

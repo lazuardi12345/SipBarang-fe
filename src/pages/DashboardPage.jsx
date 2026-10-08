@@ -29,10 +29,17 @@ export default function DashboardPage() {
   const approvedOrders = orders.filter((o) => o.status === "DISETUJUI" || o.status === "DALAM_PENGIRIMAN");
   const deliveredOrders = orders.filter((o) => o.status === "TERKIRIM");
 
-  const totalOmsetTerkirim = deliveredOrders.reduce(
-    (acc, o) => acc + (o.totalSetelahPPh || 0),
+  const totalBrutoTerkirim = deliveredOrders.reduce(
+    (acc, o) => acc + (Number(o.biayaEkspedisi ?? o.totalSetelahPPh ?? 0) || 0),
     0
   );
+
+  const totalUangJalanSupir = deliveredOrders.reduce(
+    (acc, o) => acc + (Number(o.totalSetelahPPh ?? o.biayaEkspedisi ?? 0) || 0),
+    0
+  );
+
+  const totalHasilOperasional = totalBrutoTerkirim - totalUangJalanSupir;
 
   const isDirektur = user?.role === UserRole.DIREKTUR;
 
@@ -168,38 +175,38 @@ export default function DashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {isDirektur ? (
           <Link
             to="/dashboard/approval"
-            className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm hover:border-amber-400 transition group"
+            className="h-full rounded-2xl border border-amber-200 bg-white p-5 shadow-sm hover:border-amber-400 transition group flex flex-col"
           >
-            <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="flex items-center justify-between text-slate-500 mb-3">
               <span className="text-xs font-semibold uppercase text-amber-700">Perlu ACC Anda</span>
               <div className="rounded-xl bg-amber-100 p-2 text-amber-700 group-hover:scale-110 transition">
                 <ClipboardCheck size={18} />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">
+            <p className="text-3xl font-black text-slate-900 leading-none">
               {pendingApproval.length + pendingKonfirmasi.length}
             </p>
-            <p className="text-xs text-amber-600 font-semibold mt-1 flex items-center gap-1">
+            <p className="mt-3 text-xs text-amber-600 font-semibold flex items-center gap-1">
               Buka menu ACC Direktur <ArrowRight size={12} />
             </p>
           </Link>
         ) : (
           <Link
             to="/dashboard/pengiriman"
-            className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm hover:border-amber-400 transition group"
+            className="h-full rounded-2xl border border-amber-200 bg-white p-5 shadow-sm hover:border-amber-400 transition group flex flex-col"
           >
-            <div className="flex items-center justify-between text-slate-500 mb-2">
+            <div className="flex items-center justify-between text-slate-500 mb-3">
               <span className="text-xs font-semibold uppercase text-amber-700">Menunggu ACC Direktur</span>
               <div className="rounded-xl bg-amber-100 p-2 text-amber-700 group-hover:scale-110 transition">
                 <Clock size={18} />
               </div>
             </div>
-            <p className="text-2xl font-black text-slate-900">{pendingApproval.length}</p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+            <p className="text-3xl font-black text-slate-900 leading-none">{pendingApproval.length}</p>
+            <p className="mt-3 text-xs text-slate-500 flex items-center gap-1">
               Telah diajukan ke Direktur <ArrowRight size={12} />
             </p>
           </Link>
@@ -207,16 +214,16 @@ export default function DashboardPage() {
 
         <Link
           to={isDirektur ? "/dashboard/riwayat" : "/dashboard/pelaporan"}
-          className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm hover:border-blue-400 transition group"
+          className="h-full rounded-2xl border border-blue-200 bg-white p-5 shadow-sm hover:border-blue-400 transition group flex flex-col"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
+          <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-semibold uppercase text-blue-700">Dalam Pengiriman</span>
             <div className="rounded-xl bg-blue-100 p-2 text-blue-700 group-hover:scale-110 transition">
               <Truck size={18} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{approvedOrders.length}</p>
-          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+          <p className="text-3xl font-black text-slate-900 leading-none">{approvedOrders.length}</p>
+          <p className="mt-3 text-xs text-slate-500 flex items-center gap-1">
             {isDirektur ? "Sedang dalam perjalanan" : "Siap dilaporkan terkirim"}{" "}
             <ArrowRight size={12} />
           </p>
@@ -224,33 +231,65 @@ export default function DashboardPage() {
 
         <Link
           to="/dashboard/riwayat"
-          className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm hover:border-emerald-400 transition group"
+          className="h-full rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm hover:border-emerald-400 transition group flex flex-col"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
+          <div className="flex items-center justify-between text-slate-500 mb-3">
             <span className="text-xs font-semibold uppercase text-emerald-700">Sudah Terkirim</span>
             <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 group-hover:scale-110 transition">
               <CheckCircle2 size={18} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{deliveredOrders.length}</p>
-          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+          <p className="text-3xl font-black text-slate-900 leading-none">{deliveredOrders.length}</p>
+          <p className="mt-3 text-xs text-slate-500 flex items-center gap-1">
             Pengiriman sukses <ArrowRight size={12} />
           </p>
         </Link>
 
         <Link
           to="/dashboard/invoice"
-          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-400 transition group"
+          className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-400 transition group flex flex-col"
         >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase text-slate-700">Total Invoice</span>
+          <div className="flex items-center justify-between text-slate-500 mb-3">
+            <span className="text-xs font-semibold uppercase text-slate-700">Bruto Total</span>
             <div className="rounded-xl bg-slate-100 p-2 text-slate-700 group-hover:scale-110 transition">
               <Receipt size={18} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900">{invoices.length}</p>
-          <p className="text-xs text-emerald-700 font-bold mt-1">
-            {formatRupiah(totalOmsetTerkirim)} selesai
+          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalBrutoTerkirim)}</p>
+          <p className="mt-3 text-xs text-slate-500">
+            Nilai tagihan pengiriman selesai
+          </p>
+        </Link>
+
+        <Link
+          to="/dashboard/invoice"
+          className="h-full rounded-2xl border border-orange-200 bg-white p-5 shadow-sm hover:border-orange-400 transition group flex flex-col"
+        >
+          <div className="flex items-center justify-between text-slate-500 mb-3">
+            <span className="text-xs font-semibold uppercase text-orange-700">Uang Jalan Supir</span>
+            <div className="rounded-xl bg-orange-100 p-2 text-orange-700 group-hover:scale-110 transition">
+              <Receipt size={18} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalUangJalanSupir)}</p>
+          <p className="mt-3 text-xs text-slate-500">
+            Biaya operasional driver
+          </p>
+        </Link>
+
+        <Link
+          to="/dashboard/invoice"
+          className="h-full rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm hover:border-emerald-400 transition group flex flex-col"
+        >
+          <div className="flex items-center justify-between text-slate-500 mb-3">
+            <span className="text-xs font-semibold uppercase text-emerald-700">Hasil Operasional</span>
+            <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 group-hover:scale-110 transition">
+              <TrendingUp size={18} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalHasilOperasional)}</p>
+          <p className="mt-3 text-xs text-slate-500">
+            Bruto dikurangi uang jalan supir
           </p>
         </Link>
       </div>

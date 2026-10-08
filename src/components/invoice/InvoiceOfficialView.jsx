@@ -25,6 +25,8 @@ export function InvoiceOfficialView({ invoice, onClose }) {
   const totalBruto =
     Number(invoice.subtotal) ||
     itemsList.reduce((sum, it) => sum + Number(it.biayaEkspedisi || it.tarifPengiriman || 0), 0);
+  const totalPPh2 = Number(invoice.totalPPh2 ?? invoice.totalPPh ?? totalBruto * 0.02 ?? 0);
+  const totalTagihan = Number(invoice.totalTagihan ?? invoice.totalBersih ?? (totalBruto - totalPPh2) ?? 0);
 
   return (
     <div className="space-y-4">
@@ -37,7 +39,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
               <span>Faktur Tagihan Resmi</span>
             </h3>
             <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-300">
-              📄 Format A4
+              📄 Format Profesional
             </span>
             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-800">
               {itemsList.length} DO Digabung
@@ -139,13 +141,13 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   {formatTanggal(tglInvoice.toISOString())}
                 </span>
               </p>
-              <p>
+              <p className="print-hidden">
                 <span className="text-slate-500">Jatuh Tempo: </span>
                 <span className="font-semibold text-red-600">
                   {formatTanggal(tglJatuhTempo.toISOString())}
                 </span>
               </p>
-              <p className="pt-0.5">
+              <p className="pt-0.5 print-hidden">
                 <span
                   className={`font-bold px-2 py-0.5 rounded text-[9px] uppercase ${
                     invoice.status === "LUNAS"
@@ -178,12 +180,11 @@ export function InvoiceOfficialView({ invoice, onClose }) {
               >
                 <colgroup>
                   <col style={{ width: "5%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "20%" }} />
-                  <col style={{ width: "14%" }} />
-                  <col style={{ width: "20%" }} />
                   <col style={{ width: "15%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "25%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "22%" }} />
                 </colgroup>
                 <thead>
                   <tr
@@ -195,7 +196,6 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                     <th className="px-1.5 py-1.5 border-r border-slate-300">No. SJ Pabrik</th>
                     <th className="px-1.5 py-1.5 border-r border-slate-300">Toko / Depo Tujuan</th>
                     <th className="px-1.5 py-1.5 border-r border-slate-300">Supir & Plat</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-300">Muatan Barang</th>
                     <th className="px-1.5 py-1.5 text-right">Tarif Ekspedisi</th>
                   </tr>
                 </thead>
@@ -249,16 +249,6 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                               {do_.noPolisiKendaraan || "-"}
                             </span>
                           </td>
-                          <td className="px-1.5 py-1 border-r border-slate-200">
-                            <span className="text-slate-700 block overflow-hidden text-ellipsis whitespace-nowrap">
-                              {do_.namaBarang || "-"}
-                            </span>
-                            {do_.jumlahKoli > 0 && (
-                              <span className="font-bold text-purple-700" style={{ fontSize: "7pt" }}>
-                                [{do_.jumlahKoli} Karung]
-                              </span>
-                            )}
-                          </td>
                           <td className="px-1.5 py-1 text-right font-semibold text-slate-800 whitespace-nowrap">
                             {formatRupiah(tarif)}
                           </td>
@@ -279,11 +269,11 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   <tfoot style={{ borderTop: "2px solid #cbd5e1", backgroundColor: "#f8fafc" }}>
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={5}
                         className="px-2 py-1.5 text-right font-bold text-slate-700 uppercase border-r border-slate-300"
                         style={{ fontSize: "8pt" }}
                       >
-                        Subtotal Biaya Ekspedisi ({itemsList.length} Pengiriman):
+                        Subtotal ({itemsList.length} Pengiriman)
                       </td>
                       <td className="px-2 py-1.5 text-right font-black text-slate-900 whitespace-nowrap" style={{ fontSize: "9pt" }}>
                         {formatRupiah(totalBruto)}
@@ -297,8 +287,33 @@ export function InvoiceOfficialView({ invoice, onClose }) {
 
 
 
+          {/* ── RINGKASAN BIAYA & CATATAN PPH ── */}
+          <div className="page-break-avoid mt-2 ml-auto w-[230px] rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+            <div className="space-y-1.5 text-[8.5pt]">
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Bruto Total</span>
+                <span className="font-semibold text-slate-800">{formatRupiah(totalBruto)}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Potongan PPh 2%</span>
+                <span className="font-semibold text-red-600">- {formatRupiah(totalPPh2)}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-500">
+                <span>Uang Jalan Supir</span>
+                <span className="italic">tidak masuk tagihan</span>
+              </div>
+              <div className="border-t border-slate-300 pt-2 flex items-center justify-between font-black text-slate-900">
+                <span>Total Tagihan</span>
+                <span className="text-[10pt]">{formatRupiah(totalTagihan)}</span>
+              </div>
+            </div>
+            <p className="mt-2 text-[7.2pt] leading-relaxed text-amber-700 italic">
+              Catatan: pengurangan PPh 2% dihitung dari total bruto. Uang jalan supir tidak dipotong dari penagihan pelanggan dan dicatat sebagai biaya operasional internal.
+            </p>
+          </div>
+
           {/* ── REKENING BANK & TANDA TANGAN ── */}
-          <div className="page-break-avoid grid grid-cols-2 gap-4 items-end">
+          <div className="page-break-avoid grid grid-cols-2 gap-6 items-end mt-4">
             {/* Rekening Bank */}
             <div
               className="rounded-lg border border-slate-200 p-2.5 space-y-1"
@@ -334,7 +349,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
             <div className="flex justify-end">
               <div
                 className="flex flex-col justify-between rounded-lg border border-slate-300 bg-white text-center"
-                style={{ width: "160px", height: "100px", padding: "8px" }}
+                style={{ width: "170px", minHeight: "120px", padding: "10px 10px 8px" }}
               >
                 <div>
                   <p className="font-bold text-slate-500 uppercase tracking-wider" style={{ fontSize: "8pt" }}>
@@ -345,11 +360,11 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   </p>
                 </div>
 
-                <div className="text-slate-300 italic" style={{ fontSize: "8pt" }}>
+                <div className="text-slate-300 italic pt-2" style={{ fontSize: "8pt" }}>
                   ( Tanda Tangan & Stempel )
                 </div>
 
-                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "4px" }}>
+                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
                   <p className="font-black text-slate-900 underline underline-offset-2 uppercase tracking-wider" style={{ fontSize: "9.5pt" }}>
                     DIREKTUR UTAMA
                   </p>

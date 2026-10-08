@@ -115,12 +115,6 @@ export default function PelaporanPage() {
                     <p className="text-slate-500">
                       Supir: <strong>{order.namaSupir}</strong> ({order.noPolisiKendaraan}) · Tgl Kirim: {formatTanggal(order.tanggalKirim)}
                     </p>
-                    <p className="text-slate-600">
-                      Muatan:{" "}
-                      {order.itemsBarang?.length > 0
-                        ? order.itemsBarang.map((i) => `${i.namaBarang} (${i.jumlah})`).join(" • ")
-                        : order.namaBarang || "-"}
-                    </p>
                     {order.catatanDirektur && (
                       <p className="text-blue-800 font-medium">
                         📋 Instruksi Direktur: <em>{order.catatanDirektur}</em>

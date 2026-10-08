@@ -65,6 +65,16 @@ export const deliveryOrderApi = {
     return res.data;
   },
 
+  async revise(id, note = "") {
+    const res = await ApiClient.patch(`/delivery-orders/${id}/revise`, { note });
+    return res.data;
+  },
+
+  async remove(id) {
+    const res = await ApiClient.delete(`/delivery-orders/${id}`);
+    return res.data;
+  },
+
   async update(order) {
     if (order.status === "DISETUJUI") {
       return this.approve(order.id, order.catatanDirektur || "");

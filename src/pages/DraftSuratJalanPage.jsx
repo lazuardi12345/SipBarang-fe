@@ -19,14 +19,14 @@ import {
   CheckSquare,
   Square,
   Building2,
-  Package,
   Calendar,
-  Search
+  Search,
+  Trash2
 } from "lucide-react";
 
 export default function DraftSuratJalanPage() {
   const navigate = useNavigate();
-  const { orders, loading, error, refresh, attachDocPerusahaan, submitToDirector } =
+  const { orders, loading, error, refresh, attachDocPerusahaan, submitToDirector, remove } =
     useDeliveryOrders();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,12 +67,8 @@ export default function DraftSuratJalanPage() {
   }, [draftOrders, searchQuery]);
 
   // Metrics
-  const totalKarung = useMemo(
-    () => draftOrders.reduce((sum, o) => sum + (Number(o.jumlahKoli) || 0), 0),
-    [draftOrders]
-  );
   const totalBersih = useMemo(
-    () => draftOrders.reduce((sum, o) => sum + (Number(o.totalSetelahPPh) || 0), 0),
+    () => draftOrders.reduce((sum, o) => sum + (Number(o.biayaEkspedisi ?? o.totalSetelahPPh ?? 0) || 0), 0),
     [draftOrders]
   );
   const totalToko = useMemo(() => {
@@ -209,6 +205,20 @@ export default function DraftSuratJalanPage() {
     navigate("/dashboard/pengiriman");
   };
 
+  const handleDeleteDraft = async (order) => {
+    if (!order) return;
+    const ok = window.confirm(`Hapus draft pengiriman ${order.noDO}? Tindakan ini tidak bisa dibatalkan.`);
+    if (!ok) return;
+
+    try {
+      await remove(order.id);
+      await refresh();
+      alert(`Draft pengiriman ${order.noDO} berhasil dihapus.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal menghapus draft pengiriman");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -273,28 +283,17 @@ export default function DraftSuratJalanPage() {
           <span className="text-[11px] text-slate-400">Depo / Lokasi Pengantaran</span>
         </div>
 
-        <div className="rounded-2xl border border-purple-100 bg-white p-4 shadow-xs">
+        <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Total Muatan Tertahan</span>
-            <div className="rounded-lg bg-purple-50 p-2 text-purple-600">
-              <Package size={18} />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-purple-950 mt-2 font-mono">{totalKarung}</p>
-          <span className="text-[11px] text-slate-400">Karung Muatan</span>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Estimasi Tagihan Bersih</span>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
+            <span className="text-xs font-semibold text-slate-600">Total Tarif Dasar</span>
+            <div className="rounded-lg bg-violet-50 p-2 text-violet-600">
               <Truck size={18} />
             </div>
           </div>
-          <p className="text-xl font-black text-emerald-800 mt-2 font-mono">
+          <p className="text-xl font-black text-violet-800 mt-2 font-mono">
             {formatRupiah(totalBersih)}
           </p>
-          <span className="text-[11px] text-slate-400">Total Tarif Setelah PPh 2%</span>
+          <span className="text-[11px] text-slate-400">Jumlah tarif kiriman aktif</span>
         </div>
       </div>
 
@@ -389,7 +388,6 @@ export default function DraftSuratJalanPage() {
                   <th className="px-3 py-3">No. DO & Jadwal</th>
                   <th className="px-3 py-3">Toko / Depo Tujuan</th>
                   <th className="px-3 py-3">Rute Karawang & Tarif</th>
-                  <th className="px-3 py-3">Muatan Barang</th>
                   <th className="px-3 py-3">Armada & Supir</th>
                   <th className="px-3 py-3">Surat Jalan Pabrik</th>
                   <th className="px-3 py-3 text-center">Aksi Cepat</th>
@@ -442,19 +440,10 @@ export default function DraftSuratJalanPage() {
                       <td className="px-3 py-3 whitespace-nowrap">
                         <p className="font-semibold text-blue-900">{order.tujuanKirim}</p>
                         <p className="text-emerald-700 font-bold text-[11px]">
-                          {formatRupiah(order.totalSetelahPPh)}
+                          {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
                         </p>
                         <span className="text-[10px] text-slate-400">
-                          Bruto: {formatRupiah(order.biayaEkspedisi)}
-                        </span>
-                      </td>
-
-                      <td className="px-3 py-3 max-w-xs">
-                        <span className="text-slate-800 font-medium line-clamp-1">
-                          {order.namaBarang || "-"}
-                        </span>
-                        <span className="text-[10px] font-bold text-purple-700">
-                          [{order.jumlahKoli || 0} Karung]
+                          Bruto: {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
                         </span>
                       </td>
 
@@ -514,6 +503,15 @@ export default function DraftSuratJalanPage() {
                           >
                             <Send size={12} />
                             <span>Ajukan ACC</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDraft(order)}
+                            className="rounded-lg bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 transition"
+                            title="Hapus draft pengiriman"
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
