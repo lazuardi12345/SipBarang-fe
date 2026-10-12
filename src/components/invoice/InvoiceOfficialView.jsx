@@ -25,8 +25,20 @@ export function InvoiceOfficialView({ invoice, onClose }) {
   const totalBruto =
     Number(invoice.subtotal) ||
     itemsList.reduce((sum, it) => sum + Number(it.biayaEkspedisi || it.tarifPengiriman || 0), 0);
-  const totalPPh2 = Number(invoice.totalPPh2 ?? invoice.totalPPh ?? totalBruto * 0.02 ?? 0);
-  const totalTagihan = Number(invoice.totalTagihan ?? invoice.totalBersih ?? (totalBruto - totalPPh2) ?? 0);
+  const totalPPh2 = Number(
+    invoice.totalPPh2 ??
+      invoice.totalPPh ??
+      itemsList.reduce(
+        (sum, it) =>
+          sum + Number(it.pph2 ?? Math.round(Number(it.biayaEkspedisi || 0) * 0.02)),
+        0
+      )
+  );
+  const totalTagihan = Number(
+    invoice.totalTagihan ??
+      invoice.totalBersih ??
+      (totalBruto - totalPPh2)
+  );
 
   return (
     <div className="space-y-4">
@@ -179,12 +191,14 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 style={{ fontSize: "8.5pt", tableLayout: "fixed" }}
               >
                 <colgroup>
-                  <col style={{ width: "5%" }} />
-                  <col style={{ width: "15%" }} />
-                  <col style={{ width: "15%" }} />
-                  <col style={{ width: "25%" }} />
-                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "4%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "13%" }} />
                   <col style={{ width: "22%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "12%" }} />
                 </colgroup>
                 <thead>
                   <tr
@@ -196,13 +210,21 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                     <th className="px-1.5 py-1.5 border-r border-slate-300">No. SJ Pabrik</th>
                     <th className="px-1.5 py-1.5 border-r border-slate-300">Toko / Depo Tujuan</th>
                     <th className="px-1.5 py-1.5 border-r border-slate-300">Supir & Plat</th>
-                    <th className="px-1.5 py-1.5 text-right">Tarif Ekspedisi</th>
+                    <th className="px-1.5 py-1.5 text-right border-r border-slate-300">Tarif Bruto</th>
+                    <th className="px-1.5 py-1.5 text-right border-r border-slate-300">PPh 2%</th>
+                    <th className="px-1.5 py-1.5 text-right">Netto</th>
                   </tr>
                 </thead>
                 <tbody>
                   {itemsList.length > 0 ? (
                     itemsList.map((do_, idx) => {
                       const tarif = Number(do_.biayaEkspedisi ?? do_.tarifPengiriman ?? 0);
+                      const pph2 = Number(
+                        do_.pph2 ?? Math.round(tarif * 0.02)
+                      );
+                      const netto = Number(
+                        do_.totalSetelahPPh ?? (tarif - pph2)
+                      );
                       return (
                         <tr
                           key={do_.deliveryOrderId || do_.id || idx}
@@ -249,15 +271,21 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                               {do_.noPolisiKendaraan || "-"}
                             </span>
                           </td>
-                          <td className="px-1.5 py-1 text-right font-semibold text-slate-800 whitespace-nowrap">
+                          <td className="px-1.5 py-1 text-right font-mono font-semibold text-slate-800 whitespace-nowrap border-r border-slate-200">
                             {formatRupiah(tarif)}
+                          </td>
+                          <td className="px-1.5 py-1 text-right font-mono text-red-600 whitespace-nowrap border-r border-slate-200">
+                            - {formatRupiah(pph2)}
+                          </td>
+                          <td className="px-1.5 py-1 text-right font-mono font-bold text-emerald-800 whitespace-nowrap">
+                            {formatRupiah(netto)}
                           </td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-3 py-4 text-center text-slate-400 italic">
+                      <td colSpan={8} className="px-3 py-4 text-center text-slate-400 italic">
                         Tidak ada rincian surat jalan pengiriman
                       </td>
                     </tr>
@@ -275,8 +303,14 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                       >
                         Subtotal ({itemsList.length} Pengiriman)
                       </td>
-                      <td className="px-2 py-1.5 text-right font-black text-slate-900 whitespace-nowrap" style={{ fontSize: "9pt" }}>
+                      <td className="px-1.5 py-1.5 text-right font-mono font-bold text-slate-900 whitespace-nowrap border-r border-slate-300" style={{ fontSize: "8.5pt" }}>
                         {formatRupiah(totalBruto)}
+                      </td>
+                      <td className="px-1.5 py-1.5 text-right font-mono font-bold text-red-700 whitespace-nowrap border-r border-slate-300" style={{ fontSize: "8.5pt" }}>
+                        - {formatRupiah(totalPPh2)}
+                      </td>
+                      <td className="px-1.5 py-1.5 text-right font-mono font-black text-emerald-900 whitespace-nowrap" style={{ fontSize: "9pt" }}>
+                        {formatRupiah(totalTagihan)}
                       </td>
                     </tr>
                   </tfoot>

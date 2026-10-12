@@ -70,8 +70,8 @@ export function InvoicePrintView({ invoice }) {
             <th className="py-2 pr-2">No. DO</th>
             <th className="py-2 pr-2">Tujuan Kirim</th>
             <th className="py-2 pr-2">Tanggal</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2 text-right">Uang Jalan Supir</th>
+            <th className="py-2 pr-2 text-right">Tarif Bruto</th>
+            <th className="py-2 pr-2 text-right">PPh 2%</th>
             <th className="py-2 pl-2 text-right">Total Netto</th>
           </tr>
         </thead>

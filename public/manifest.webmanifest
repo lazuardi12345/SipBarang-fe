@@ -1,20 +1,71 @@
 {
-  "name": "SIPBarang - PT Almira Yuniar Trek",
+  "name": "SIPBarang - PT ALMIRA YUNIAR TREK",
   "short_name": "AYT Ekspedisi",
   "start_url": "/",
   "id": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#0f172a",
-  "theme_color": "#1e40af",
-  "description": "Sistem Informasi Pengiriman Barang & Delivery Order - PT Almira Yuniar Trek",
-  "orientation": "portrait-primary",
+  "theme_color": "#0f172a",
+  "description": "Sistem Informasi Pengiriman Barang & Delivery Order (DO) PT ALMIRA YUNIAR TREK",
+  "orientation": "any",
+  "lang": "id",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/assets/logo.jpg",
       "sizes": "192x192 256x256 512x512",
       "type": "image/jpeg",
-      "purpose": "any maskable"
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Beranda",
+      "short_name": "Beranda",
+      "description": "Buka Dashboard Ringkasan",
+      "url": "/dashboard",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Input Pengiriman",
+      "short_name": "Input DO",
+      "description": "Input Surat Jalan & DO Baru",
+      "url": "/dashboard/pengiriman",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Rekap Surat Jalan",
+      "short_name": "Rekap",
+      "description": "Rekapitulasi Tagihan & PPh 2%",
+      "url": "/dashboard/rekap-surat-jalan",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Invoice Tagihan",
+      "short_name": "Invoice",
+      "description": "Cetak Invoice Resmi",
+      "url": "/dashboard/invoice",
+      "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

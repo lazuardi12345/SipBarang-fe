@@ -9,6 +9,7 @@ import PelaporanPage from './pages/PelaporanPage';
 import DraftSuratJalanPage from './pages/DraftSuratJalanPage';
 import RiwayatPage from './pages/RiwayatPage';
 import InvoicePage from './pages/InvoicePage';
+import RekapSuratJalanPage from './pages/RekapSuratJalanPage';
 import TarifPage from './pages/TarifPage';
 import Layout from './components/Layout';
 import { RoleGuard } from './components/layout/RoleGuard';
@@ -122,6 +123,16 @@ function AppRoutes() {
           <PrivateRoute>
             <Layout>
               <InvoicePage />
+            </Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path={APP_ROUTES.rekapSuratJalan}
+        element={
+          <PrivateRoute>
+            <Layout>
+              <RekapSuratJalanPage />
             </Layout>
           </PrivateRoute>
         }

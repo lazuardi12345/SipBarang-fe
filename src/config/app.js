@@ -16,4 +16,5 @@ export const APP_ROUTES = {
   pelaporan: "/dashboard/pelaporan",
   riwayat: "/dashboard/riwayat",
   invoice: "/dashboard/invoice",
+  rekapSuratJalan: "/dashboard/rekap-surat-jalan",
 };

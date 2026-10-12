@@ -29,7 +29,21 @@ export function formatTanggalWaktu(iso) {
   }).format(date);
 }
 
+export function hitungPPh2(total) {
+  return Math.round((Number(total) || 0) * 0.02);
+}
+
 export function hitungTotalSetelahPPh(total) {
-  const pph2 = Math.round((total || 0) * 0.02);
-  return (total || 0) - pph2;
+  const pph2 = hitungPPh2(total);
+  return (Number(total) || 0) - pph2;
+}
+
+export function formatTanggalSingkat(iso) {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return String(iso);
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }

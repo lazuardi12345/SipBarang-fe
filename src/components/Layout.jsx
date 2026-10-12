@@ -16,6 +16,11 @@ import {
   AlertTriangle,
   Layers,
   MapPinned,
+  WifiOff,
+  Smartphone,
+  Share,
+  PlusSquare,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, APP_NAME, COMPANY_NAME } from '../utils/constants';
@@ -33,7 +38,7 @@ const MENU = [
     href: '/dashboard/pengiriman',
     label: 'Input Pengiriman',
     icon: Truck,
-    roles: [UserRole.ADMIN], // Khusus Admin
+    roles: [UserRole.ADMIN],
   },
   {
     href: '/dashboard/master-tujuan',
@@ -46,25 +51,32 @@ const MENU = [
     label: 'Tunggu Surat Jalan',
     badge: 'Draft',
     icon: AlertTriangle,
-    roles: [UserRole.ADMIN], // Khusus Admin
+    roles: [UserRole.ADMIN],
   },
   {
     href: '/dashboard/approval',
     label: 'ACC Direktur',
     badge: 'Wajib ACC',
     icon: ClipboardCheck,
-    roles: [UserRole.DIREKTUR], // Khusus Direktur (Admin tidak bisa ACC)
+    roles: [UserRole.DIREKTUR],
   },
   {
     href: '/dashboard/pelaporan',
     label: 'Pelaporan Terkirim',
     icon: PackageCheck,
-    roles: [UserRole.ADMIN], // Khusus Admin
+    roles: [UserRole.ADMIN],
   },
   {
     href: '/dashboard/invoice',
     label: 'Invoice Tagihan',
     icon: FileText,
+    roles: [UserRole.ADMIN, UserRole.DIREKTUR],
+  },
+  {
+    href: '/dashboard/rekap-surat-jalan',
+    label: 'Rekap Surat Jalan',
+    badge: 'PPh 2%',
+    icon: Layers,
     roles: [UserRole.ADMIN, UserRole.DIREKTUR],
   },
   {
@@ -84,8 +96,17 @@ export default function Layout({ children }) {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const currentRole = String(user?.role || '').toUpperCase();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showIosModal, setShowIosModal] = useState(false);
+  const [dismissBanner, setDismissBanner] = useState(false);
 
+  const currentRole = String(user?.role || '').toUpperCase();
+  const isIos =
+    typeof navigator !== 'undefined' &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+    !window.MSStream;
+
+  // Listen for PWA BeforeInstallPrompt and Online/Offline
   useEffect(() => {
     const handleBeforeInstall = (e) => {
       e.preventDefault();
@@ -94,15 +115,26 @@ export default function Layout({ children }) {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+    ) {
       setIsInstalled(true);
     }
 
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
+  // Handle mobile drawer Escape key & scroll lock
   useEffect(() => {
     if (!mobileOpen) return undefined;
 
@@ -119,12 +151,15 @@ export default function Layout({ children }) {
   }, [mobileOpen]);
 
   const handleInstallApp = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
-      setInstallPrompt(null);
+    if (installPrompt) {
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        setInstallPrompt(null);
+      }
+    } else if (isIos) {
+      setShowIosModal(true);
     }
   };
 
@@ -139,9 +174,25 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
+  // Mobile Bottom Navigation items based on role
+  const bottomNavItems =
+    currentRole === UserRole.DIREKTUR
+      ? [
+          { href: '/dashboard', label: 'Beranda', icon: LayoutDashboard },
+          { href: '/dashboard/approval', label: 'ACC', icon: ClipboardCheck },
+          { href: '/dashboard/rekap-surat-jalan', label: 'Rekap', icon: Layers },
+          { href: '/dashboard/invoice', label: 'Invoice', icon: FileText },
+        ]
+      : [
+          { href: '/dashboard', label: 'Beranda', icon: LayoutDashboard },
+          { href: '/dashboard/pengiriman', label: 'Input DO', icon: Truck },
+          { href: '/dashboard/rekap-surat-jalan', label: 'Rekap', icon: Layers },
+          { href: '/dashboard/invoice', label: 'Invoice', icon: FileText },
+        ];
+
   return (
     <div className="flex min-h-screen bg-slate-100/70 antialiased lg:h-screen lg:overflow-hidden">
-      {/* Mobile Backdrop */}
+      {/* Mobile Backdrop for Sidebar Drawer */}
       {mobileOpen && (
         <button
           type="button"
@@ -151,11 +202,11 @@ export default function Layout({ children }) {
         />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* ── SIDEBAR NAVIGATION (Desktop Sticky / Mobile Drawer) ── */}
       <aside
         id="app-sidebar"
         aria-label="Navigasi utama"
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen h-[100dvh] w-[min(18rem,calc(100vw-2rem))] shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen h-[100dvh] w-[min(18.5rem,calc(100vw-2rem))] shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:translate-x-0 lg:shadow-none ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -188,16 +239,24 @@ export default function Layout({ children }) {
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex items-center justify-between gap-2 px-4 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-          <span className="min-w-0">{user?.role === UserRole.DIREKTUR ? 'Menu Direktur Utama' : 'Menu Operasional'}</span>
-          <span className={`shrink-0 rounded-md px-2 py-1 text-[9px] font-bold tracking-wider ${
-            user?.role === UserRole.DIREKTUR ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'
-          }`}>
+        {/* Role Badge Indicator */}
+        <div className="flex items-center justify-between gap-2 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 border-b border-slate-800/60">
+          <span className="min-w-0">
+            {user?.role === UserRole.DIREKTUR ? 'Menu Direktur Utama' : 'Menu Operasional'}
+          </span>
+          <span
+            className={`shrink-0 rounded-md px-2 py-0.5 text-[9px] font-bold tracking-wider ${
+              user?.role === UserRole.DIREKTUR
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+            }`}
+          >
             {user?.role === UserRole.DIREKTUR ? 'DIREKTUR' : 'ADMIN'}
           </span>
         </div>
-        <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain px-3 pb-4">
+
+        {/* Navigation Links */}
+        <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain px-3 py-3">
           {visibleMenu.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
@@ -248,16 +307,16 @@ export default function Layout({ children }) {
           })}
         </nav>
 
-        {/* PWA Install Button */}
-        {installPrompt && !isInstalled && (
+        {/* PWA Install Button on Sidebar */}
+        {!isInstalled && (installPrompt || isIos) && (
           <div className="px-3 pb-3">
             <button
               type="button"
               onClick={handleInstallApp}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-700/20 transition hover:from-emerald-500 hover:to-teal-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-700/20 transition hover:from-emerald-500 hover:to-teal-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
             >
-              <Download size={15} />
-              Install Aplikasi (PWA)
+              <Smartphone size={16} />
+              <span>Install Aplikasi (PWA)</span>
             </button>
           </div>
         )}
@@ -294,7 +353,7 @@ export default function Layout({ children }) {
           <button
             type="button"
             onClick={() => setLogoutModalOpen(true)}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             <LogOut size={14} />
             Keluar Sistem
@@ -302,9 +361,18 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* ── MAIN CONTENT AREA ── */}
       <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/95 px-4 py-2 shadow-sm backdrop-blur sm:px-6 lg:static lg:px-8">
+        {/* Offline Warning Banner */}
+        {!isOnline && (
+          <div className="no-print flex items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-inner">
+            <WifiOff size={15} />
+            <span>Mode Offline: Terputus dari internet. Menampilkan data lokal tersimpan.</span>
+          </div>
+        )}
+
+        {/* Top Header Bar */}
+        <header className="no-print sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/95 px-4 py-2 shadow-sm backdrop-blur sm:px-6 lg:static lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -326,30 +394,139 @@ export default function Layout({ children }) {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-3">
-            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${
-              user?.role === UserRole.DIREKTUR
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-blue-100 text-blue-700'
-            }`}>
-              {user?.role === UserRole.DIREKTUR ? '👑' : <User size={16} />}
-            </span>
-            <span className="max-w-28 truncate text-xs font-semibold text-slate-700 sm:max-w-48">
-              {user?.nama?.split(' ')[0]}
-            </span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Quick Install Button for Desktop / Tablet */}
+            {!isInstalled && (installPrompt || isIos) && (
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700 transition"
+              >
+                <Download size={14} />
+                <span className="hidden sm:inline">Install Aplikasi PWA</span>
+                <span className="sm:hidden">Install</span>
+              </button>
+            )}
+
+            {/* User Profile Chip */}
+            <div className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-3">
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${
+                  user?.role === UserRole.DIREKTUR
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {user?.role === UserRole.DIREKTUR ? '👑' : <User size={16} />}
+              </span>
+              <span className="max-w-28 truncate text-xs font-semibold text-slate-700 sm:max-w-48">
+                {user?.nama?.split(' ')[0]}
+              </span>
+            </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+        {/* Mobile PWA Install Notification Card */}
+        {!isInstalled && (installPrompt || isIos) && !dismissBanner && (
+          <div className="no-print mx-4 mt-3 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-3.5 text-white shadow-lg border border-blue-500/30 sm:mx-6 lg:hidden">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/30 text-blue-300 border border-blue-400/40">
+                  <Smartphone size={22} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Pasang SIPBarang di Layar HP</span>
+                    <Sparkles size={12} className="text-amber-400" />
+                  </p>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Akses cepat 1-ketuk langsung seperti aplikasi native tanpa buka browser.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDismissBanner(true)}
+                className="text-slate-400 hover:text-white p-1"
+                aria-label="Tutup pemberitahuan"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mt-2.5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-500 shadow transition"
+              >
+                Pasang Sekarang
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Scrollable Page Content (Extra bottom padding on mobile for bottom navigation bar) */}
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-24 lg:pb-8">
           <div className="mx-auto w-full max-w-screen-2xl">{children}</div>
         </main>
       </div>
 
+      {/* ── MOBILE BOTTOM NAVIGATION BAR (HP & Small Tablets) ── */}
+      <nav
+        aria-label="Navigasi bawah mobile"
+        className="no-print fixed bottom-0 inset-x-0 z-40 flex items-center justify-around border-t border-slate-200/90 bg-white/95 px-2 py-1.5 backdrop-blur-md shadow-lg lg:hidden pb-[calc(0.4rem+env(safe-area-inset-bottom))]"
+      >
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.href;
+
+          return (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              end={item.href === '/dashboard'}
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition ${
+                isActive
+                  ? user?.role === UserRole.DIREKTUR
+                    ? 'text-amber-600 font-bold'
+                    : 'text-blue-700 font-bold'
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <div
+                className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
+                  isActive
+                    ? user?.role === UserRole.DIREKTUR
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-blue-100 text-blue-700'
+                    : ''
+                }`}
+              >
+                <Icon size={18} />
+              </div>
+              <span className="text-[10px] mt-0.5 leading-none">{item.label}</span>
+            </NavLink>
+          );
+        })}
+
+        {/* Menu More Drawer Button */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 hover:text-slate-800 transition font-medium"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100">
+            <Menu size={18} />
+          </div>
+          <span className="text-[10px] mt-0.5 leading-none">Menu</span>
+        </button>
+      </nav>
+
+      {/* ── MODAL KONFIRMASI KELUAR ── */}
       {logoutModalOpen && (
         <Modal title="Konfirmasi Keluar" onClose={() => setLogoutModalOpen(false)}>
           <p className="mb-6 text-sm text-slate-600">
-            Yakin ingin keluar dari sistem?
+            Yakin ingin keluar dari sistem SIPBarang PT Almira Yuniar Trek?
           </p>
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setLogoutModalOpen(false)}>
@@ -358,6 +535,48 @@ export default function Layout({ children }) {
             <Button variant="danger" onClick={handleLogout}>
               Keluar Sistem
             </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── MODAL PANDUAN INSTALL PWA IOS (IPHONE / IPAD) ── */}
+      {showIosModal && (
+        <Modal title="Pasang Aplikasi di iPhone / iPad" onClose={() => setShowIosModal(false)}>
+          <div className="space-y-4 text-xs text-slate-700">
+            <p className="text-slate-600 leading-relaxed">
+              Untuk memasang SIPBarang di layar utama iPhone/iPad Anda:
+            </p>
+            <ol className="space-y-3 font-medium">
+              <li className="flex items-center gap-3 rounded-xl bg-slate-50 p-2.5 border border-slate-200">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs">
+                  1
+                </span>
+                <span className="flex-1">
+                  Ketuk tombol <strong>Bagikan (Share)</strong> <Share size={14} className="inline text-blue-600" /> di bilah bawah browser Safari.
+                </span>
+              </li>
+              <li className="flex items-center gap-3 rounded-xl bg-slate-50 p-2.5 border border-slate-200">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs">
+                  2
+                </span>
+                <span className="flex-1">
+                  Gulir ke bawah dan pilih menu <strong>"Tambah ke Layar Utama" (Add to Home Screen)</strong> <PlusSquare size={14} className="inline text-blue-600" />.
+                </span>
+              </li>
+              <li className="flex items-center gap-3 rounded-xl bg-slate-50 p-2.5 border border-slate-200">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs">
+                  3
+                </span>
+                <span className="flex-1">
+                  Ketuk <strong>Tambah (Add)</strong> di pojok kanan atas. Ikon SIPBarang akan otomatis muncul di layar utama HP Anda!
+                </span>
+              </li>
+            </ol>
+            <div className="flex justify-end pt-2">
+              <Button variant="primary" onClick={() => setShowIosModal(false)}>
+                Mengerti
+              </Button>
+            </div>
           </div>
         </Modal>
       )}

@@ -108,3 +108,38 @@ body {
   .bg-blue-50\/50 { background-color: #eff6ff !important; }
   .bg-slate-50 { background-color: #f8fafc !important; }
 }
+
+/* ── PWA & MOBILE RESPONSIVE OPTIMIZATIONS ── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    --sat: env(safe-area-inset-top);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+    --sar: env(safe-area-inset-right);
+  }
+}
+
+html {
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Custom smooth scrollbar for tables on tablets & mobile */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

@@ -173,15 +173,21 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
               </div>
               <div>
                 <span className="text-slate-500">Tarif Bruto:</span>
-                <p className="font-bold text-slate-900 mt-0.5">{formatRupiah(order.tarifPengiriman || 0)}</p>
+                <p className="font-bold text-slate-900 mt-0.5">
+                  {formatRupiah(order.biayaEkspedisi ?? order.tarifPengiriman ?? 0)}
+                </p>
               </div>
               <div>
-                <span className="text-slate-500">Uang Jalan Supir:</span>
-                <p className="font-bold text-red-600 mt-0.5">- {formatRupiah(order.nilaiPPh || 0)}</p>
+                <span className="text-slate-500">Potongan PPh 2%:</span>
+                <p className="font-bold text-red-600 mt-0.5">
+                  - {formatRupiah(order.pph2Persen ?? Math.round(Number(order.biayaEkspedisi || 0) * 0.02))}
+                </p>
               </div>
               <div>
                 <span className="text-slate-500">Tarif Tagihan Bersih:</span>
-                <p className="text-sm font-extrabold text-emerald-700 mt-0.5">{formatRupiah(order.totalSetelahPPh || 0)}</p>
+                <p className="text-sm font-extrabold text-emerald-700 mt-0.5">
+                  {formatRupiah(order.totalSetelahPPh ?? (Number(order.biayaEkspedisi || 0) - Math.round(Number(order.biayaEkspedisi || 0) * 0.02)))}
+                </p>
               </div>
             </div>
           </div>
