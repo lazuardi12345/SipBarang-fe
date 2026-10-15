@@ -1,5 +1,5 @@
 // Service Worker for SIPBarang PWA - PT ALMIRA YUNIAR TREK
-const CACHE_NAME = 'ayt-sipbarang-v3';
+const CACHE_NAME = 'ayt-sipbarang-v4';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -40,6 +40,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Browser extensions and other non-web schemes cannot be stored in CacheStorage.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   // Jangan cache request API (/api)
   if (url.pathname.startsWith('/api') || url.pathname.includes('/api/')) {

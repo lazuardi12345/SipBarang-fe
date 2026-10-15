@@ -11,6 +11,11 @@ export const invoiceApi = {
     return res.data || null;
   },
 
+  async verify(token) {
+    const res = await ApiClient.get(`/invoices/verify/${encodeURIComponent(token)}`);
+    return res.data;
+  },
+
   async create(invoiceInput) {
     const res = await ApiClient.post("/invoices", invoiceInput);
     return res.data;

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { SESSION_KEY } from "../utils/constants";
 import ApiClient from "../api/client";
 import { authApi } from "../api/auth";
+import { connectRealtime } from "../api/realtime";
 
 const AuthContext = createContext(undefined);
 
@@ -42,6 +43,14 @@ export function AuthProvider({ children }) {
 
     initAuth();
   }, []);
+
+  useEffect(() => {
+    if (!user || !ApiClient.getToken()) return undefined;
+
+    const controller = new AbortController();
+    connectRealtime(controller.signal);
+    return () => controller.abort();
+  }, [user?.id]);
 
   const login = async (email, password) => {
     const result = await authApi.login(email, password);

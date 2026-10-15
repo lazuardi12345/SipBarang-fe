@@ -51,6 +51,11 @@ export const deliveryOrderApi = {
     return res.data;
   },
 
+  async updateLembar(id, lembar) {
+    const res = await ApiClient.patch(`/delivery-orders/${id}/lembar`, { lembar });
+    return res.data;
+  },
+
   async confirmDelivered(id, catatan = "") {
     const res = await ApiClient.patch(`/delivery-orders/${id}/confirm-delivered`, { catatan });
     return res.data;

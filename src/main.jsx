@@ -12,17 +12,26 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 );
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+// Register the PWA worker only for production builds.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch((err) => {
       console.log('SW registration failed: ', err);
     });
   });
 } else if ('serviceWorker' in navigator) {
-  // In development, also register so it works locally if supported
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(
+        registrations
+          .filter((registration) =>
+            [registration.active, registration.waiting, registration.installing]
+              .some((worker) => worker?.scriptURL === `${window.location.origin}/sw.js`)
+          )
+          .map((registration) => registration.unregister())
+      ))
+      .catch((error) => {
+        console.warn('Gagal membersihkan service worker development:', error);
+      });
   });
 }
-

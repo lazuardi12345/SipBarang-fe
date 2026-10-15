@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { tarifApi } from "../api/tarifs";
+import { useRealtimeRefresh } from "./useRealtimeRefresh";
 
 export function useTarif() {
   const [tarifList, setTarifList] = useState([]);
@@ -19,6 +20,7 @@ export function useTarif() {
   useEffect(() => {
     loadTarif();
   }, [loadTarif]);
+  useRealtimeRefresh(loadTarif);
 
   const createTarif = useCallback(async (payload) => {
     const tarif = await tarifApi.create(payload);

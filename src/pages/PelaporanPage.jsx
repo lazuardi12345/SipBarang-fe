@@ -231,8 +231,7 @@ export default function PelaporanPage() {
                 <tr>
                   <th className="px-4 py-3">No. DO</th>
                   <th className="px-4 py-3">Toko / Tujuan</th>
-                  <th className="px-4 py-3">Penerima Barang</th>
-                  <th className="px-4 py-3">Tgl. Selesai</th>
+                  <th className="px-4 py-3">Tanggal Selesai</th>
                   <th className="px-4 py-3">Tagihan Bersih</th>
                   <th className="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -245,8 +244,14 @@ export default function PelaporanPage() {
                       <p className="font-semibold text-slate-900">{order.namaToko || order.namaPenerima}</p>
                       <p className="text-slate-500">{order.tujuanKirim}</p>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{order.namaPenerimaBarang || "-"}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatTanggalWaktu(order.tanggalDiterima)}</td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {formatTanggalWaktu(
+                        order.dikonfirmasiPada ||
+                        order.tanggalDiterima ||
+                        order.updatedAt ||
+                        order.createdAt
+                      )}
+                    </td>
                     <td className="px-4 py-3 font-bold text-emerald-700">{formatRupiah(order.totalSetelahPPh)}</td>
                     <td className="px-4 py-3 text-center">
                       <button

@@ -9,7 +9,8 @@ import PelaporanPage from './pages/PelaporanPage';
 import DraftSuratJalanPage from './pages/DraftSuratJalanPage';
 import RiwayatPage from './pages/RiwayatPage';
 import InvoicePage from './pages/InvoicePage';
-import RekapSuratJalanPage from './pages/RekapSuratJalanPage';
+import InvoiceVerificationPage from './pages/InvoiceVerificationPage';
+import PembukuanPage from './pages/PembukuanPage';
 import TarifPage from './pages/TarifPage';
 import Layout from './components/Layout';
 import { RoleGuard } from './components/layout/RoleGuard';
@@ -36,6 +37,10 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to={APP_ROUTES.home} replace />} />
       <Route path={APP_ROUTES.login} element={<LoginPage />} />
       <Route path={APP_ROUTES.register} element={<RegisterPage />} />
+      <Route
+        path={APP_ROUTES.invoiceVerification}
+        element={<InvoiceVerificationPage />}
+      />
 
       <Route
         path={APP_ROUTES.dashboard}
@@ -128,14 +133,18 @@ function AppRoutes() {
         }
       />
       <Route
-        path={APP_ROUTES.rekapSuratJalan}
+        path={APP_ROUTES.pembukuan}
         element={
           <PrivateRoute>
             <Layout>
-              <RekapSuratJalanPage />
+              <PembukuanPage />
             </Layout>
           </PrivateRoute>
         }
+      />
+      <Route
+        path={APP_ROUTES.rekapSuratJalan}
+        element={<Navigate to={APP_ROUTES.pembukuan} replace />}
       />
     </Routes>
   );

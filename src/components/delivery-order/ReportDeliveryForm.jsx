@@ -18,12 +18,48 @@ export function ReportDeliveryForm({
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  function handleFile(e) {
+  async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setBuktiPengirimanUrl(reader.result);
-    reader.readAsDataURL(file);
+    setError(null);
+    if (!file.type.startsWith("image/")) {
+      setError("File bukti harus berupa gambar.");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Ukuran foto maksimal 15 MB.");
+      return;
+    }
+
+    let imageBitmap;
+    let imageUrl;
+    try {
+      imageBitmap = await createImageBitmap(file);
+      const maxDimension = 1600;
+      const scale = Math.min(1, maxDimension / Math.max(imageBitmap.width, imageBitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(imageBitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(imageBitmap.height * scale));
+      canvas.getContext("2d").drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+      const compressedImage = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("Foto gagal diproses.")),
+          "image/jpeg",
+          0.8
+        );
+      });
+      const reader = new FileReader();
+      imageUrl = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Foto gagal dibaca."));
+        reader.readAsDataURL(compressedImage);
+      });
+      setBuktiPengirimanUrl(imageUrl);
+    } catch (fileError) {
+      setError(fileError instanceof Error ? fileError.message : "Foto gagal diproses.");
+    } finally {
+      imageBitmap?.close();
+    }
   }
 
   async function handleSubmit(e) {

@@ -21,6 +21,8 @@ import {
   Send
 } from "lucide-react";
 import { InvoiceOfficialView } from "../components/invoice/InvoiceOfficialView";
+import { useAuth } from "../context/AuthContext";
+import { UserRole } from "../utils/constants";
 
 const STATUS_INVOICE_COLORS = {
   BELUM_DIBAYAR: { text: "text-amber-700", bg: "bg-amber-100", label: "Belum Dibayar" },
@@ -347,6 +349,7 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
 }
 
 export default function InvoicePage() {
+  const { user } = useAuth();
   const { orders } = useDeliveryOrders();
   const { invoices, loading, error, refresh, generate, updateStatus } = useInvoices();
 
@@ -355,6 +358,7 @@ export default function InvoicePage() {
 
   // Hanya DO yang sudah berstatus TERKIRIM
   const deliveredOrders = orders.filter((o) => o.status === "TERKIRIM");
+  const canCreateInvoice = user?.role === UserRole.DIREKTUR;
 
   const handleGenerate = async (input) => {
     await generate(input);
@@ -416,14 +420,16 @@ export default function InvoicePage() {
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Muat Ulang
           </button>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm transition"
-          >
-            <Plus size={16} />
-            + Buat Invoice Baru ({deliveredOrders.length} DO Siap)
-          </button>
+          {canCreateInvoice && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-sm transition"
+            >
+              <Plus size={16} />
+              + Buat Invoice Baru ({deliveredOrders.length} DO Siap)
+            </button>
+          )}
         </div>
       </div>
 

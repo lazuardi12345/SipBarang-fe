@@ -4,7 +4,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { useInvoices } from "../hooks/useInvoices";
-import { formatRupiah, formatTanggal } from "../utils/format";
+import MonthlyFinancialChart from "../components/dashboard/MonthlyFinancialChart";
+import { getDeliveryOrderFinancials } from "../utils/deliveryOrderFinance";
+import { formatRupiah } from "../utils/format";
 import {
   Truck,
   ClipboardCheck,
@@ -29,17 +31,20 @@ export default function DashboardPage() {
   const approvedOrders = orders.filter((o) => o.status === "DISETUJUI" || o.status === "DALAM_PENGIRIMAN");
   const deliveredOrders = orders.filter((o) => o.status === "TERKIRIM");
 
-  const totalBrutoTerkirim = deliveredOrders.reduce(
-    (acc, o) => acc + (Number(o.biayaEkspedisi ?? o.totalSetelahPPh ?? 0) || 0),
-    0
+  const totalKeuanganTerkirim = deliveredOrders.reduce(
+    (totals, order) => {
+      const amounts = getDeliveryOrderFinancials(order);
+      totals.gross += amounts.gross;
+      totals.profit += amounts.profit;
+      if (amounts.driverExpense == null) {
+        totals.missingCount += 1;
+        return totals;
+      }
+      totals.driverExpense += amounts.driverExpense;
+      return totals;
+    },
+    { gross: 0, profit: 0, driverExpense: 0, missingCount: 0 }
   );
-
-  const totalUangJalanSupir = deliveredOrders.reduce(
-    (acc, o) => acc + (Number(o.totalSetelahPPh ?? o.biayaEkspedisi ?? 0) || 0),
-    0
-  );
-
-  const totalHasilOperasional = totalBrutoTerkirim - totalUangJalanSupir;
 
   const isDirektur = user?.role === UserRole.DIREKTUR;
 
@@ -255,7 +260,7 @@ export default function DashboardPage() {
               <Receipt size={18} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalBrutoTerkirim)}</p>
+          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.gross)}</p>
           <p className="mt-3 text-xs text-slate-500">
             Nilai tagihan pengiriman selesai
           </p>
@@ -266,14 +271,14 @@ export default function DashboardPage() {
           className="h-full rounded-2xl border border-orange-200 bg-white p-5 shadow-sm hover:border-orange-400 transition group flex flex-col"
         >
           <div className="flex items-center justify-between text-slate-500 mb-3">
-            <span className="text-xs font-semibold uppercase text-orange-700">Uang Jalan Supir</span>
+            <span className="text-xs font-semibold uppercase text-orange-700">Laba</span>
             <div className="rounded-xl bg-orange-100 p-2 text-orange-700 group-hover:scale-110 transition">
               <Receipt size={18} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalUangJalanSupir)}</p>
+          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.profit)}</p>
           <p className="mt-3 text-xs text-slate-500">
-            Biaya operasional driver
+            2% dari tarif bruto
           </p>
         </Link>
 
@@ -282,17 +287,25 @@ export default function DashboardPage() {
           className="h-full rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm hover:border-emerald-400 transition group flex flex-col"
         >
           <div className="flex items-center justify-between text-slate-500 mb-3">
-            <span className="text-xs font-semibold uppercase text-emerald-700">Hasil Operasional</span>
+            <span className="text-xs font-semibold uppercase text-emerald-700">Uang Jalan Sopir</span>
             <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 group-hover:scale-110 transition">
               <TrendingUp size={18} />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalHasilOperasional)}</p>
+          <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.driverExpense)}</p>
           <p className="mt-3 text-xs text-slate-500">
-            Bruto dikurangi uang jalan supir
+            Sesuai uang jalan pada master tujuan
           </p>
         </Link>
       </div>
+
+      {totalKeuanganTerkirim.missingCount > 0 && (
+        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+          {totalKeuanganTerkirim.missingCount} DO belum memiliki data uang jalan dari master tarif. Laba tetap dihitung 2% dari bruto; jalankan migrasi backend untuk melengkapi total uang jalan.
+        </p>
+      )}
+
+      <MonthlyFinancialChart orders={orders} />
 
       {/* Recent Orders List */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

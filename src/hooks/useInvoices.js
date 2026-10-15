@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoiceApi } from "../api/invoices";
+import { useRealtimeRefresh } from "./useRealtimeRefresh";
 
 export function useInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setError(null);
     try {
       const all = await invoiceApi.list();
       const sorted = [...all].sort(
@@ -24,6 +26,7 @@ export function useInvoices() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+  useRealtimeRefresh(refresh);
 
   const generate = useCallback(
     async (input) => {

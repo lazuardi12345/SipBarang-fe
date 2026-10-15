@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/ui/Alert';
-import { UserRole } from '../utils/constants';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -10,7 +9,6 @@ export default function RegisterPage() {
   const [nama, setNama] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState(UserRole.ADMIN);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,7 +18,7 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
-      await register({ nama, email, password, role });
+      await register({ nama, email, password });
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal mendaftar');
@@ -88,17 +86,9 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Hak Akses (Role)</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition"
-            >
-              <option value={UserRole.ADMIN}>Admin Operasional</option>
-              <option value={UserRole.DIREKTUR}>Direktur Utama</option>
-            </select>
-          </div>
+          <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            Registrasi mandiri membuat akun Admin Operasional. Akun Direktur dikelola secara khusus.
+          </p>
 
           <button
             type="submit"

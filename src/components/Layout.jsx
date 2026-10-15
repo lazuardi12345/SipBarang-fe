@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -73,9 +73,8 @@ const MENU = [
     roles: [UserRole.ADMIN, UserRole.DIREKTUR],
   },
   {
-    href: '/dashboard/rekap-surat-jalan',
-    label: 'Rekap Surat Jalan',
-    badge: 'PPh 2%',
+    href: '/dashboard/pembukuan',
+    label: 'Pembukuan',
     icon: Layers,
     roles: [UserRole.ADMIN, UserRole.DIREKTUR],
   },
@@ -93,7 +92,9 @@ export default function Layout({ children }) {
   const location = useLocation();
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const profileMenuRef = useRef(null);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -150,6 +151,26 @@ export default function Layout({ children }) {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+
+    const closeOnOutsideClick = (event) => {
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setProfileMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [profileMenuOpen]);
+
   const handleInstallApp = async () => {
     if (installPrompt) {
       installPrompt.prompt();
@@ -180,13 +201,13 @@ export default function Layout({ children }) {
       ? [
           { href: '/dashboard', label: 'Beranda', icon: LayoutDashboard },
           { href: '/dashboard/approval', label: 'ACC', icon: ClipboardCheck },
-          { href: '/dashboard/rekap-surat-jalan', label: 'Rekap', icon: Layers },
+          { href: '/dashboard/pembukuan', label: 'Pembukuan', icon: Layers },
           { href: '/dashboard/invoice', label: 'Invoice', icon: FileText },
         ]
       : [
           { href: '/dashboard', label: 'Beranda', icon: LayoutDashboard },
           { href: '/dashboard/pengiriman', label: 'Input DO', icon: Truck },
-          { href: '/dashboard/rekap-surat-jalan', label: 'Rekap', icon: Layers },
+          { href: '/dashboard/pembukuan', label: 'Pembukuan', icon: Layers },
           { href: '/dashboard/invoice', label: 'Invoice', icon: FileText },
         ];
 
@@ -408,20 +429,53 @@ export default function Layout({ children }) {
               </button>
             )}
 
-            {/* User Profile Chip */}
-            <div className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-3">
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${
-                  user?.role === UserRole.DIREKTUR
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-blue-100 text-blue-700'
-                }`}
+            <div ref={profileMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((open) => !open)}
+                aria-label="Buka menu profil"
+                aria-expanded={profileMenuOpen}
+                aria-haspopup="menu"
+                className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-3 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                {user?.role === UserRole.DIREKTUR ? '👑' : <User size={16} />}
-              </span>
-              <span className="max-w-28 truncate text-xs font-semibold text-slate-700 sm:max-w-48">
-                {user?.nama?.split(' ')[0]}
-              </span>
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${
+                    user?.role === UserRole.DIREKTUR
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}
+                >
+                  {user?.role === UserRole.DIREKTUR ? '👑' : <User size={16} />}
+                </span>
+                <span className="max-w-28 truncate text-xs font-semibold text-slate-700 sm:max-w-48">
+                  {user?.nama?.split(' ')[0]}
+                </span>
+              </button>
+              {profileMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+                >
+                  <div className="border-b border-slate-100 px-3 py-2">
+                    <p className="truncate text-sm font-bold text-slate-900">{user?.nama}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {user?.role === UserRole.DIREKTUR ? 'Direktur Utama' : 'Admin Operasional'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      setLogoutModalOpen(true);
+                    }}
+                    className="mt-1 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                  >
+                    <LogOut size={16} />
+                    Keluar Sistem
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -466,7 +520,7 @@ export default function Layout({ children }) {
         )}
 
         {/* Scrollable Page Content (Extra bottom padding on mobile for bottom navigation bar) */}
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-24 lg:pb-8">
+        <main className="min-w-0 flex-none overflow-x-hidden overflow-y-visible px-3 py-4 pb-24 sm:px-6 sm:py-6 lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-y-contain lg:px-8 lg:py-8 lg:pb-8">
           <div className="mx-auto w-full max-w-screen-2xl">{children}</div>
         </main>
       </div>

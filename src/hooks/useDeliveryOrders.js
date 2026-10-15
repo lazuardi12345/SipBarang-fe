@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { deliveryOrderApi } from "../api/deliveryOrders";
+import { useRealtimeRefresh } from "./useRealtimeRefresh";
 
 export function useDeliveryOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setError(null);
     try {
       const all = await deliveryOrderApi.list();
       const sorted = [...all].sort(
@@ -24,6 +26,7 @@ export function useDeliveryOrders() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+  useRealtimeRefresh(refresh);
 
   const create = useCallback(
     async (input) => {

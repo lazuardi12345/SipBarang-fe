@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "../ui/Modal";
+import { ImagePreview } from "../ui/ImagePreview";
 import { StatusBadge } from "../ui/StatusBadge";
 import { CompanyKopSurat } from "../common/CompanyKopSurat";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../../utils/format";
@@ -191,6 +192,20 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
               </div>
             </div>
           </div>
+
+          {order.buktiPengirimanUrl && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="mb-3 flex items-center gap-2 border-b pb-2 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <FileText size={15} className="text-emerald-600" />
+                Bukti Foto Pengiriman
+              </div>
+              <ImagePreview
+                src={order.buktiPengirimanUrl}
+                alt={`Bukti foto penerimaan barang ${order.noDO}`}
+                thumbnailClassName="max-h-96 max-w-full rounded-lg border border-slate-200 object-contain"
+              />
+            </div>
+          )}
 
           {/* 5. Tanda Tangan Resmi Pengiriman */}
           <div className="grid grid-cols-3 gap-3 text-center text-xs pt-3">

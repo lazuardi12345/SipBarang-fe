@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
 import { StatusBadge } from "../components/ui/StatusBadge";
+import { ImagePreview } from "../components/ui/ImagePreview";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../utils/format";
 import { History, Search, Eye, RefreshCw } from "lucide-react";
 
@@ -114,6 +115,7 @@ export default function RiwayatPage() {
                   <th className="px-4 py-3">Rute Tujuan</th>
                   <th className="px-4 py-3">Supir & Armada</th>
                   <th className="px-4 py-3 text-right">Tagihan Bersih</th>
+                  <th className="px-4 py-3 text-center">Bukti Foto</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -139,6 +141,18 @@ export default function RiwayatPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <p className="font-bold text-emerald-700">{formatRupiah(order.totalSetelahPPh)}</p>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {order.buktiPengirimanUrl ? (
+                        <ImagePreview
+                          src={order.buktiPengirimanUrl}
+                          alt={`Bukti pengiriman ${order.noDO}`}
+                          onClick={(event) => event.stopPropagation()}
+                          thumbnailClassName="h-10 w-10 rounded-md border border-slate-200 object-cover"
+                        />
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <StatusBadge status={order.status} />
