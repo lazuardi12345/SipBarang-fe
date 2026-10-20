@@ -2,9 +2,9 @@
 
 import { X } from "lucide-react";
 
-export function Modal({ title, onClose, children, maxWidth = "max-w-lg" }) {
+export function Modal({ title, onClose, children, maxWidth = "max-w-lg", className = "" }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm ${className}`}>
       <div className={`w-full ${maxWidth} rounded-xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto`}>
         <div className="mb-4 flex items-center justify-between border-b pb-3">
           <h3 className="text-base font-semibold text-slate-900">{title}</h3>

@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useRef } from "react";
 import { CompanyKopSurat } from "../common/CompanyKopSurat";
 import { formatRupiah, formatTanggal } from "../../utils/format";
 import { Printer, X, FileText } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 
 export function InvoiceOfficialView({ invoice, onClose }) {
+  const printAreaRef = useRef(null);
   if (!invoice) return null;
 
   const getDestination = (value) =>
@@ -14,13 +14,202 @@ export function InvoiceOfficialView({ invoice, onClose }) {
       .filter(Boolean)
       .pop() || "-";
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    const printArea = printAreaRef.current;
+    if (!printArea) {
+      window.alert("Area invoice tidak ditemukan untuk dicetak.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      window.alert("Jendela cetak diblokir browser. Izinkan pop-up, lalu coba cetak kembali.");
+      return;
+    }
+
+    const printDocument = printWindow.document;
+    printDocument.open();
+    printDocument.write("<!doctype html><html><head></head><body></body></html>");
+    printDocument.close();
+
+    const base = printDocument.createElement("base");
+    base.href = document.baseURI;
+    printDocument.head.appendChild(base);
+
+    const title = printDocument.createElement("title");
+    title.textContent = `Invoice ${invoice.noInvoice}`;
+    printDocument.head.appendChild(title);
+
+    const stylesheets = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"]')
+    ).map((stylesheet) => {
+      const copy = printDocument.createElement("link");
+      copy.rel = "stylesheet";
+      copy.href = stylesheet.href;
+      const loaded = new Promise((resolve, reject) => {
+        copy.onload = resolve;
+        copy.onerror = () => reject(new Error("Stylesheet invoice gagal dimuat untuk cetak."));
+      });
+      printDocument.head.appendChild(copy);
+      return loaded;
+    });
+
+    document.querySelectorAll("style").forEach((style) => {
+      const copy = printDocument.createElement("style");
+      copy.textContent = style.textContent;
+      printDocument.head.appendChild(copy);
+    });
+
+    const printStyles = printDocument.createElement("style");
+    printStyles.textContent = `
+      @page {
+        size: 210mm 330mm;
+        margin: 0;
+      }
+
+      html, body {
+        width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+      }
+
+      body {
+        color: #000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      #invoice-print-area.invoice-official-page.invoice-document {
+        display: block !important;
+        width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+
+      #invoice-print-area.invoice-official-page.invoice-document .invoice-pages-wrapper {
+        display: block !important;
+        width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+      }
+
+      #invoice-print-area.invoice-official-page.invoice-document .invoice-sheet {
+        width: 210mm !important;
+        height: auto !important;
+        min-height: 330mm !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 10mm 12mm !important;
+        overflow: visible !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+      }
+
+      #invoice-print-area.invoice-official-page.invoice-document .invoice-sheet-first {
+        break-after: page !important;
+        page-break-after: always !important;
+      }
+
+      #invoice-print-area .company-letterhead {
+        width: calc(100% + 21.2mm) !important;
+        margin: -4.6mm -10.6mm 0 !important;
+      }
+
+      #invoice-print-area .company-letterhead > div:first-child {
+        height: 37.3mm !important;
+        box-sizing: border-box !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 1.2mm !important;
+        padding: 0 0 0 2.6mm !important;
+      }
+
+      #invoice-print-area .company-letterhead-logo {
+        display: block !important;
+        width: 51mm !important;
+        height: 37.3mm !important;
+        max-width: none !important;
+        object-fit: contain !important;
+      }
+
+      #invoice-print-area .company-letterhead > div:first-child > div:last-child {
+        flex: none !important;
+        width: 115mm !important;
+        text-align: center !important;
+      }
+
+      #invoice-print-area .company-letterhead-name {
+        margin: 0 !important;
+        color: #111 !important;
+        font-family: "Copperplate Gothic Bold", Copperplate, "Palatino Linotype", Georgia, serif !important;
+        font-size: 18pt !important;
+        line-height: 1.1 !important;
+        letter-spacing: 0 !important;
+      }
+
+      #invoice-print-area .company-letterhead-address,
+      #invoice-print-area .company-letterhead-contact {
+        margin-top: 0.5mm !important;
+        color: #222 !important;
+        font-family: Calibri, Arial, sans-serif !important;
+        font-size: 12pt !important;
+        line-height: 1.1 !important;
+      }
+
+      #invoice-print-area .company-letterhead-contact-inline {
+        display: none !important;
+      }
+
+      #invoice-print-area .company-letterhead-contact-print {
+        display: block !important;
+      }
+
+      #invoice-print-area .company-letterhead > div:nth-child(2) {
+        border-color: #1f497d !important;
+      }
+
+      #invoice-print-area .company-letterhead > div:nth-child(3) {
+        margin-top: 0.25mm !important;
+        border-color: #1f497d !important;
+      }
+
+      #invoice-print-area .no-print,
+      #invoice-print-area .print-hidden {
+        display: none !important;
+      }
+    `;
+    printDocument.head.appendChild(printStyles);
+
+    printDocument.body.appendChild(printDocument.importNode(printArea, true));
+
+    try {
+      await Promise.all(stylesheets);
+      await printDocument.fonts.ready;
+      await Promise.all(
+        Array.from(printDocument.images, (image) =>
+          image.complete
+            ? Promise.resolve()
+            : new Promise((resolve) => {
+                image.onload = resolve;
+                image.onerror = resolve;
+              })
+        )
+      );
+      printWindow.onafterprint = () => printWindow.close();
+      printWindow.focus();
+      printWindow.print();
+    } catch (error) {
+      printWindow.close();
+      window.alert(error instanceof Error ? error.message : "Gagal menyiapkan invoice untuk dicetak.");
+    }
   };
-  const verificationUrl = new URL(
-    `/verifikasi/invoice/${encodeURIComponent(invoice.verificationToken || "")}`,
-    window.location.origin
-  ).toString();
 
   // Tanggal jatuh tempo (30 hari dari tanggal invoice)
   const tglInvoice = new Date(invoice.createdAt || invoice.tanggalInvoice || new Date());
@@ -35,28 +224,21 @@ export function InvoiceOfficialView({ invoice, onClose }) {
 
   const groupedItems = Object.values(
     itemsList.reduce((groups, item) => {
-      const description =
-        (item.namaBarang && item.namaBarang !== "-" ? item.namaBarang : "") ||
-        item.keteranganDoc ||
-        "Deskripsi belum tersedia";
-      const area = item.tujuanKirim || getDestination(item.areaDistribusi);
+      const destination = item.tujuanKirim || getDestination(item.areaDistribusi);
       const unitPrice = Number(item.biayaEkspedisi ?? item.tarifPengiriman ?? 0);
-      const key = JSON.stringify([description, area, unitPrice]);
+      const key = JSON.stringify([destination.trim().toLocaleLowerCase("id-ID"), unitPrice]);
 
       if (!groups[key]) {
         groups[key] = {
-          description,
-          area,
+          description: destination,
           unitPrice,
           quantity: 0,
-          totalNetto: 0,
+          amount: 0,
         };
       }
 
-      const pph2 = Number(item.pph2 ?? Math.round(unitPrice * 0.02));
-      const netto = Number(item.totalSetelahPPh ?? (unitPrice - pph2));
       groups[key].quantity += 1;
-      groups[key].totalNetto += netto;
+      groups[key].amount += unitPrice;
       return groups;
     }, {})
   );
@@ -98,7 +280,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Siap cetak A4 (210×297 mm) — klik tombol cetak untuk simpan PDF.
+            Siap cetak F4 / Folio (210×330 mm) — klik tombol cetak untuk simpan PDF.
           </p>
         </div>
 
@@ -109,7 +291,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
             className="flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-blue-800 transition"
           >
             <Printer size={15} />
-            <span>Cetak / Download PDF (A4)</span>
+            <span>Cetak / Download PDF (F4)</span>
           </button>
           <button
             type="button"
@@ -122,12 +304,13 @@ export function InvoiceOfficialView({ invoice, onClose }) {
         </div>
       </div>
 
-      {/* Screen Wrapper: Simulasi kertas A4 */}
+      {/* Screen Wrapper: Simulasi kertas F4 */}
       <div className="invoice-pages-wrapper w-full bg-slate-300 p-4 sm:p-8 rounded-2xl overflow-x-auto flex justify-center">
         {/* ============================================================
             AREA CETAK RESMI — ID dipakai oleh @media print di styles.css
             ============================================================ */}
         <div
+          ref={printAreaRef}
           id="invoice-print-area"
           className="invoice-official-page invoice-document bg-white text-slate-900 box-border text-[10.5px] leading-snug"
           style={{
@@ -194,23 +377,6 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   {formatTanggal(tglJatuhTempo.toISOString())}
                 </span>
               </p>
-              <p className="pt-0.5 print-hidden">
-                <span
-                  className={`font-bold px-2 py-0.5 rounded text-[9px] uppercase ${
-                    invoice.status === "LUNAS"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : invoice.status === "DIBATALKAN"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {invoice.status === "LUNAS"
-                    ? "LUNAS"
-                    : invoice.status === "DIBATALKAN"
-                    ? "DIBATALKAN"
-                    : "BELUM DIBAYAR"}
-                </span>
-              </p>
             </div>
           </div>
 
@@ -226,13 +392,12 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 style={{ fontSize: "8.5pt", tableLayout: "fixed" }}
               >
                 <colgroup>
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "32%" }} />
-                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "7%" }} />
+                  <col style={{ width: "36%" }} />
                   <col style={{ width: "10%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "15%" }} />
-                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "18.5%" }} />
+                  <col style={{ width: "18.5%" }} />
                 </colgroup>
                 <thead>
                   <tr
@@ -240,12 +405,11 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                     style={{ backgroundColor: "#e2e8f0", fontSize: "7.5pt" }}
                   >
                     <th className="px-1.5 py-1.5 text-center border-r border-slate-300">No</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-300">Item Description</th>
-                    <th className="px-1.5 py-1.5 border-r border-slate-300">Area</th>
-                    <th className="px-1.5 py-1.5 text-center border-r border-slate-300">Qty</th>
+                    <th className="px-1.5 py-1.5 border-r border-slate-300">Description</th>
                     <th className="px-1.5 py-1.5 text-center border-r border-slate-300">UoM</th>
-                    <th className="px-1.5 py-1.5 text-right border-r border-slate-300">Unit Price</th>
-                    <th className="px-1.5 py-1.5 text-right">Price</th>
+                    <th className="px-1.5 py-1.5 text-center border-r border-slate-300">Qty</th>
+                    <th className="px-1.5 py-1.5 text-right border-r border-slate-300">Unit Cost</th>
+                    <th className="px-1.5 py-1.5 text-right">Unit Price Amount</th>
                   </tr>
                 </thead>
                 <tbody className="invoice-lines-body">
@@ -261,33 +425,30 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                         <td className="px-1.5 py-1 font-semibold text-slate-900 border-r border-slate-200">
                           {item.description}
                         </td>
-                        <td className="px-1.5 py-1 border-r border-slate-200">
-                          {item.area}
+                        <td className="px-1.5 py-1 text-center border-r border-slate-200">
+                          DO
                         </td>
                         <td className="px-1.5 py-1 text-center border-r border-slate-200">
                           {item.quantity}
-                        </td>
-                        <td className="px-1.5 py-1 text-center border-r border-slate-200">
-                          DO
                         </td>
                         <td className="px-1.5 py-1 text-right font-mono whitespace-nowrap border-r border-slate-200">
                           {formatRupiah(item.unitPrice)}
                         </td>
                         <td className="px-1.5 py-1 text-right font-mono font-bold whitespace-nowrap">
-                          {formatRupiah(item.totalNetto)}
+                          {formatRupiah(item.amount)}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-3 py-4 text-center text-slate-400 italic">
+                      <td colSpan={6} className="px-3 py-4 text-center text-slate-400 italic">
                         Tidak ada rincian surat jalan pengiriman
                       </td>
                     </tr>
                   )}
                   {groupedItems.length > 0 && groupedItems.length <= 4 && (
                     <tr className="invoice-table-filler" aria-hidden="true">
-                      <td colSpan={7} />
+                      <td colSpan={6} />
                     </tr>
                   )}
                 </tbody>
@@ -338,15 +499,13 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 style={{ fontSize: "9pt" }}
               >
                 <p className="text-slate-900">
-                  Bank Mandiri :{" "}
-                  <span className="font-mono font-bold text-blue-900">133-00-293819-2</span>
-                </p>
-                <p className="text-slate-900">
-                  Bank BCA :{" "}
-                  <span className="font-mono font-bold text-blue-900">8830-192-888</span>
+                  Silakan transfer ke rekening perusahaan:
+                  <br />
+                  BCA :{" "}
+                  <span className="font-mono font-bold text-blue-900">5721.904.530</span>
                 </p>
                 <p className="text-slate-600 pt-0.5" style={{ fontSize: "8.5pt" }}>
-                  Atas Nama :{" "}
+                  <span className="font-semibold">Atas Nama :</span>{" "}
                   <strong>PT ALMAIRA YUNIAR TREK</strong>
                 </p>
               </div>
@@ -369,30 +528,6 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   <p className="font-bold text-slate-900" style={{ fontSize: "9pt" }}>
                     PT ALMAIRA YUNIAR TREK
                   </p>
-                </div>
-
-                <div className="flex flex-col items-center pt-1">
-                  {invoice.verificationToken ? (
-                    <QRCodeSVG
-                      value={verificationUrl}
-                      size={82}
-                      level="H"
-                      imageSettings={{
-                        src: "/assets/logo.jpg",
-                        width: 22,
-                        height: 22,
-                        excavate: true,
-                      }}
-                      aria-label={`QR verifikasi invoice ${invoice.noInvoice}`}
-                    />
-                  ) : (
-                    <span className="py-5 text-center text-red-600" style={{ fontSize: "7pt" }}>
-                      Token QR belum tersedia. Jalankan migrasi database.
-                    </span>
-                  )}
-                  <span className="mt-1 text-slate-500" style={{ fontSize: "6.5pt" }}>
-                    Pindai untuk verifikasi
-                  </span>
                 </div>
 
                 <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
@@ -481,6 +616,33 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 )}
               </tbody>
             </table>
+
+            <div className="page-break-avoid mt-8 flex justify-end">
+              <div
+                className="flex flex-col justify-between rounded-lg border border-slate-300 bg-white text-center"
+                style={{ width: "170px", minHeight: "150px", padding: "10px 10px 8px" }}
+              >
+                <div>
+                  <p className="font-bold text-slate-500 uppercase tracking-wider" style={{ fontSize: "8pt" }}>
+                    Hormat Kami,
+                  </p>
+                  <p className="font-bold text-slate-900" style={{ fontSize: "9pt" }}>
+                    PT ALMAIRA YUNIAR TREK
+                  </p>
+                </div>
+
+                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
+                  <p className="font-black text-slate-900 underline underline-offset-2 uppercase tracking-wider" style={{ fontSize: "9.5pt" }}>
+                    {invoice.dibuatOleh?.role === "DIREKTUR"
+                      ? invoice.dibuatOleh.nama || "DIREKTUR UTAMA"
+                      : "BELUM DISAHKAN"}
+                  </p>
+                  <p className="text-slate-500" style={{ fontSize: "7.5pt" }}>
+                    {invoice.dibuatOleh?.role === "DIREKTUR" ? "Direktur Utama" : "PT Almaira Yuniar Trek"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </div>

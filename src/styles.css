@@ -22,8 +22,8 @@ body {
 /* Print Optimization for Official Documents (Invoice & Surat Jalan) */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 0;
+    size: 210mm 330mm;
+    margin: 6mm;
   }
 
   *, *::before, *::after {
@@ -32,8 +32,8 @@ body {
   }
 
   html, body {
-    width: 210mm !important;
-    height: 297mm !important;
+    width: auto !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
@@ -53,19 +53,17 @@ body {
   }
 
   #invoice-print-area {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 210mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
+    position: static !important;
+    width: 198mm !important;
+    min-height: 0 !important;
+    max-height: none !important;
     margin: 0 !important;
-    padding: 8mm 10mm !important;
+    padding: 0 !important;
     background: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     font-size: 9.5pt !important;
   }
 
@@ -81,32 +79,70 @@ body {
 
   #invoice-print-area.invoice-official-page.invoice-document .invoice-pages-wrapper {
     display: block !important;
-    width: 210mm !important;
+    width: 198mm !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
     background: #ffffff !important;
   }
 
+  .invoice-pages-wrapper {
+    display: block !important;
+    width: 198mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .invoice-print-modal {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+  }
+
+  .invoice-print-modal > div {
+    width: 198mm !important;
+    max-width: none !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .invoice-print-modal > div > div:first-child {
+    display: none !important;
+  }
+
   #invoice-print-area.invoice-official-page.invoice-document .invoice-sheet {
-    width: 210mm !important;
+    width: 198mm !important;
     box-sizing: border-box !important;
     margin: 0 !important;
-    padding: 10mm 12mm !important;
+    padding: 8mm 10mm !important;
     border: none !important;
     box-shadow: none !important;
     background: #ffffff !important;
   }
 
   #invoice-print-area.invoice-official-page.invoice-document .invoice-sheet-first {
-    height: 297mm !important;
-    min-height: 297mm !important;
+    height: auto !important;
+    min-height: 318mm !important;
     break-after: page !important;
     page-break-after: always !important;
   }
 
   #invoice-print-area.invoice-official-page.invoice-document .invoice-sheet-recap {
-    min-height: 297mm !important;
+    min-height: 318mm !important;
     height: auto !important;
   }
 
@@ -127,12 +163,7 @@ body {
   }
 
   #invoice-print-area.invoice-official-page .invoice-table-filler {
-    display: table-row !important;
-  }
-
-  #invoice-print-area.invoice-official-page .invoice-table-filler td {
-    height: 120mm !important;
-    padding: 0 !important;
+    display: none !important;
   }
 
   #invoice-print-area.invoice-official-page .invoice-items-table,
@@ -215,7 +246,7 @@ body {
 
 .invoice-document .invoice-sheet {
   width: 210mm;
-  min-height: 297mm;
+  min-height: 330mm;
   box-sizing: border-box;
 }
 

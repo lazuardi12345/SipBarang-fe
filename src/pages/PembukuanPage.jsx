@@ -70,11 +70,17 @@ export default function PembukuanPage() {
   const [toDate, setToDate] = useState("");
   const [statusFilter, setStatusFilter] = useState("TERKIRIM");
   const [search, setSearch] = useState("");
+  const [mdoDrafts, setMdoDrafts] = useState({});
   const [lembarDrafts, setLembarDrafts] = useState({});
   const [savingId, setSavingId] = useState("");
   const [saveError, setSaveError] = useState("");
   const [printDate, setPrintDate] = useState(getLocalDateInputValue);
   const canEditLembar = String(user?.role || "").toUpperCase() === UserRole.ADMIN;
+
+  const getMdoValue = (order) =>
+    Object.prototype.hasOwnProperty.call(mdoDrafts, order.id)
+      ? mdoDrafts[order.id]
+      : order.mdo || "";
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("id-ID");
@@ -92,21 +98,46 @@ export default function PembukuanPage() {
         order.namaToko,
         order.namaPenerima,
         order.noSchedule,
+        getMdoValue(order),
         order.noDocPerusahaan,
         order.noDO,
         order.tujuanKirim,
         order.areaDistribusi,
       ].some((value) => String(value || "").toLocaleLowerCase("id-ID").includes(query));
     });
-  }, [orders, statusFilter, fromDate, toDate, search]);
+  }, [orders, statusFilter, fromDate, toDate, search, mdoDrafts]);
 
   const getLembarValue = (order) =>
     Object.prototype.hasOwnProperty.call(lembarDrafts, order.id)
       ? lembarDrafts[order.id]
       : order.lembar || "";
 
+  const updateMdoDraft = (orderId, value) => {
+    setMdoDrafts((current) => ({ ...current, [orderId]: value }));
+  };
+
   const updateLembarDraft = (orderId, value) => {
     setLembarDrafts((current) => ({ ...current, [orderId]: value }));
+  };
+
+  const saveMdo = async (order) => {
+    setSavingId(order.id);
+    setSaveError("");
+    try {
+      await deliveryOrderApi.updateMdo(order.id, getMdoValue(order));
+      setMdoDrafts((current) => {
+        const next = { ...current };
+        delete next[order.id];
+        return next;
+      });
+      await refresh();
+      return true;
+    } catch (saveError) {
+      setSaveError(saveError instanceof Error ? saveError.message : "Gagal menyimpan nomor MDO.");
+      return false;
+    } finally {
+      setSavingId("");
+    }
   };
 
   const saveLembar = async (order) => {
@@ -120,20 +151,35 @@ export default function PembukuanPage() {
         return next;
       });
       await refresh();
+      return true;
     } catch (saveError) {
       setSaveError(saveError instanceof Error ? saveError.message : "Gagal menyimpan kolom lembar.");
+      return false;
     } finally {
       setSavingId("");
     }
   };
 
+  const saveBookFields = async (order) => {
+    if (
+      Object.prototype.hasOwnProperty.call(mdoDrafts, order.id) &&
+      !(await saveMdo(order))
+    ) {
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(lembarDrafts, order.id)) {
+      await saveLembar(order);
+    }
+  };
+
   const exportCsv = () => {
-    const headers = ["No", "Distributor", "Tgl MDO", "MDO", "No Surat Jalan", "Lembar", "Rit"];
+    const headers = ["No", "Distributor", "Tgl MDO", "No. Schedule", "MDO", "No Surat Jalan", "Lembar", "Rit"];
     const records = filteredOrders.map((order, index) => [
       index + 1,
       order.namaToko || order.namaPenerima || "",
       formatDate(order.tglSchedule),
       order.noSchedule || "",
+      getMdoValue(order),
       order.noDocPerusahaan || order.noDO || "",
       getLembarValue(order),
       getOrderRit(order),
@@ -166,6 +212,7 @@ export default function PembukuanPage() {
             <td>${escapeHtml(order ? order.namaToko || order.namaPenerima || "" : "")}</td>
             <td>${escapeHtml(order ? formatDate(order.tglSchedule) : "")}</td>
             <td>${escapeHtml(order?.noSchedule || "")}</td>
+            <td>${escapeHtml(order ? getMdoValue(order) : "")}</td>
             <td>${escapeHtml(order ? order.noDocPerusahaan || order.noDO || "" : "")}</td>
             <td>${escapeHtml(order ? getLembarValue(order) : "")}</td>
             <td>${escapeHtml(order ? getOrderRit(order) : "")}</td>
@@ -186,12 +233,13 @@ export default function PembukuanPage() {
           <p class="date">Tanggal: ${escapeHtml(printDate ? formatDate(printDate) : "")}</p>
           <table>
             <colgroup>
-              <col style="width:5%"><col style="width:23%"><col style="width:14%">
-              <col style="width:15%"><col style="width:19%"><col style="width:12%"><col style="width:12%">
+              <col style="width:4%"><col style="width:19%"><col style="width:12%">
+              <col style="width:13%"><col style="width:13%"><col style="width:17%">
+              <col style="width:10%"><col style="width:12%">
             </colgroup>
             <thead><tr>
-              <th>No</th><th>Distributor</th><th>Tgl MDO</th><th>MDO</th>
-              <th>No Surat Jalan</th><th>Lembar</th><th>Rit</th>
+              <th>No</th><th>Distributor</th><th>Tgl MDO</th><th>No. Schedule</th>
+              <th>MDO</th><th>No Surat Jalan</th><th>Lembar</th><th>Rit</th>
             </tr></thead>
             <tbody>${bodyRows}</tbody>
           </table>
@@ -210,10 +258,10 @@ export default function PembukuanPage() {
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>Tanda Terima Surat Jalan</title>
           <style>
-            @page { size: A4 landscape; margin: 8mm; }
+            @page { size: 330mm 210mm; margin: 6mm; }
             * { box-sizing: border-box; }
-            html, body { width: 281mm; margin: 0; padding: 0; color: #000; font: 8pt Arial, sans-serif; }
-            .page { position: relative; width: 281mm; height: 194mm; overflow: hidden; break-after: page; page-break-after: always; }
+            html, body { width: 318mm; margin: 0; padding: 0; color: #000; font: 8pt Arial, sans-serif; }
+            .page { position: relative; width: 318mm; min-height: 198mm; overflow: visible; break-after: page; page-break-after: always; }
             .page.last-page { break-after: auto; page-break-after: auto; }
             .letterhead { position: relative; display: flex; align-items: center; justify-content: center; height: 20mm; text-align: center; }
             .letterhead img { position: absolute; left: 4mm; top: 50%; width: 28mm; height: 23mm; object-fit: contain; transform: translateY(-50%); }
@@ -222,7 +270,7 @@ export default function PembukuanPage() {
             .company p { margin: 0.5mm 0; font-size: 7pt; }
             .title { margin: 3mm 0; text-align: center; font-size: 10pt; text-decoration: underline; }
             .date { margin: 0 0 1mm; font-size: 8pt; }
-            table { width: 281mm; height: 81mm; border-collapse: collapse; table-layout: fixed; }
+            table { width: 318mm; height: 81mm; border-collapse: collapse; table-layout: fixed; }
             th, td { height: 5mm; border: 1px solid #000; padding: 0.4mm 1mm; text-align: center; vertical-align: middle; overflow-wrap: anywhere; }
             th { font-size: 7.5pt; font-weight: 700; }
             td { font-size: 7pt; }
@@ -350,12 +398,13 @@ export default function PembukuanPage() {
           <span className="text-xs text-slate-500">{filteredOrders.length} surat jalan</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-xs">
+          <table className="w-full min-w-[1100px] text-left text-xs">
             <thead className="bg-slate-50 uppercase tracking-wide text-slate-600">
               <tr>
                 <th className="px-3 py-3 text-center">No</th>
                 <th className="px-3 py-3">Distributor</th>
                 <th className="px-3 py-3">Tgl MDO</th>
+                <th className="px-3 py-3">No. Schedule</th>
                 <th className="px-3 py-3">MDO</th>
                 <th className="px-3 py-3">No Surat Jalan</th>
                 <th className="px-3 py-3">Lembar</th>
@@ -365,15 +414,26 @@ export default function PembukuanPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={canEditLembar ? 8 : 7} className="px-4 py-10 text-center text-slate-500">Memuat data pembukuan...</td></tr>
+                <tr><td colSpan={canEditLembar ? 9 : 8} className="px-4 py-10 text-center text-slate-500">Memuat data pembukuan...</td></tr>
               ) : filteredOrders.length === 0 ? (
-                <tr><td colSpan={canEditLembar ? 8 : 7} className="px-4 py-10 text-center text-slate-500">Tidak ada surat jalan pada filter ini.</td></tr>
+                <tr><td colSpan={canEditLembar ? 9 : 8} className="px-4 py-10 text-center text-slate-500">Tidak ada surat jalan pada filter ini.</td></tr>
               ) : filteredOrders.map((order, index) => (
                 <tr key={order.id} className="text-slate-700 hover:bg-slate-50">
                   <td className="px-3 py-2.5 text-center">{index + 1}</td>
                   <td className="px-3 py-2.5 font-semibold">{order.namaToko || order.namaPenerima || "-"}</td>
                   <td className="px-3 py-2.5">{formatDate(order.tglSchedule) || "-"}</td>
                   <td className="px-3 py-2.5 font-mono">{order.noSchedule || "-"}</td>
+                  <td className="px-3 py-2.5">
+                    {canEditLembar ? (
+                      <input
+                        value={getMdoValue(order)}
+                        maxLength={100}
+                        onChange={(event) => updateMdoDraft(order.id, event.target.value)}
+                        aria-label={`Nomor MDO surat jalan ${order.noDocPerusahaan || order.noDO}`}
+                        className="w-32 rounded-md border border-slate-200 px-2 py-1"
+                      />
+                    ) : getMdoValue(order) || "-"}
+                  </td>
                   <td className="px-3 py-2.5 font-mono">{order.noDocPerusahaan || order.noDO || "-"}</td>
                   <td className="px-3 py-2.5">
                     {canEditLembar ? (
@@ -391,8 +451,8 @@ export default function PembukuanPage() {
                     <td className="px-3 py-2.5">
                       <button
                         type="button"
-                        disabled={savingId === order.id || !Object.prototype.hasOwnProperty.call(lembarDrafts, order.id)}
-                        onClick={() => saveLembar(order)}
+                        disabled={savingId === order.id || (!Object.prototype.hasOwnProperty.call(lembarDrafts, order.id) && !Object.prototype.hasOwnProperty.call(mdoDrafts, order.id))}
+                        onClick={() => saveBookFields(order)}
                         className="rounded-md bg-blue-50 px-2.5 py-1.5 font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {savingId === order.id ? "Menyimpan..." : "Simpan"}

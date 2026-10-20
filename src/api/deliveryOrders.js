@@ -56,6 +56,11 @@ export const deliveryOrderApi = {
     return res.data;
   },
 
+  async updateMdo(id, mdo) {
+    const res = await ApiClient.patch(`/delivery-orders/${id}/mdo`, { mdo });
+    return res.data;
+  },
+
   async confirmDelivered(id, catatan = "") {
     const res = await ApiClient.patch(`/delivery-orders/${id}/confirm-delivered`, { catatan });
     return res.data;

@@ -50,16 +50,6 @@ export function InvoicePrintView({ invoice }) {
           <p className="text-xs text-slate-500">
             Tanggal: {formatTanggal(invoice.tanggalInvoice)}
           </p>
-          <span
-            className={
-              "mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium " +
-              (invoice.status === "LUNAS"
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-amber-100 text-amber-700")
-            }
-          >
-            {invoice.status === "LUNAS" ? "Lunas" : "Belum Lunas"}
-          </span>
         </div>
       </div>
 

@@ -152,7 +152,7 @@ export function DeliveryOrderForm({
 
         {tarifTerpilih && (
           <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-            Tarif jasa pengiriman: <b>{formatRupiah(tarifTerpilih.total || tarifTerpilih.totalSetelahPPh || 0)}</b>
+            Tarif jasa pengiriman: <b>{formatRupiah(tarifTerpilih.total || 0)}</b>
           </div>
         )}
       </div>

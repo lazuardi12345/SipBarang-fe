@@ -40,14 +40,11 @@ export default function DeliveryOrderPage() {
     order: null,
     noDocPerusahaan: "",
     tglDocPerusahaan: "",
+    uangJalanSupir: "",
     keteranganDoc: "",
     error: null,
     processing: false,
   });
-
-  // Batch selection for drafts
-  const [selectedDraftIds, setSelectedDraftIds] = useState([]);
-  const [batchProcessing, setBatchProcessing] = useState(false);
 
   const draftOrders = orders.filter(
     (o) => o.status === "DRAFT" || o.status === "PLANNING"
@@ -83,6 +80,7 @@ export default function DeliveryOrderPage() {
       order,
       noDocPerusahaan: order.noDocPerusahaan || "",
       tglDocPerusahaan: order.tglDocPerusahaan || "",
+      uangJalanSupir: "",
       keteranganDoc: order.keteranganDoc || "",
       error: null,
       processing: false,
@@ -105,12 +103,24 @@ export default function DeliveryOrderPage() {
       }));
       return;
     }
+    if (
+      submitModal.uangJalanSupir === "" ||
+      !Number.isFinite(Number(submitModal.uangJalanSupir)) ||
+      Number(submitModal.uangJalanSupir) < 0
+    ) {
+      setSubmitModal((prev) => ({
+        ...prev,
+        error: "Uang jalan supir wajib diisi dengan nominal tidak negatif",
+      }));
+      return;
+    }
 
     setSubmitModal((prev) => ({ ...prev, processing: true, error: null }));
     try {
       await submitToDirector(submitModal.order.id, {
         noDocPerusahaan: submitModal.noDocPerusahaan,
         tglDocPerusahaan: submitModal.tglDocPerusahaan,
+        uangJalanSupir: Number(submitModal.uangJalanSupir),
         keteranganDoc: submitModal.keteranganDoc,
       });
       setSubmitModal({
@@ -118,6 +128,7 @@ export default function DeliveryOrderPage() {
         order: null,
         noDocPerusahaan: "",
         tglDocPerusahaan: "",
+        uangJalanSupir: "",
         keteranganDoc: "",
         error: null,
         processing: false,
@@ -129,44 +140,6 @@ export default function DeliveryOrderPage() {
         processing: false,
         error: err instanceof Error ? err.message : "Gagal mengajukan ke Direktur",
       }));
-    }
-  };
-
-  const handleSelectAllDrafts = (e) => {
-    if (e.target.checked) {
-      setSelectedDraftIds(draftOrders.map((o) => o.id));
-    } else {
-      setSelectedDraftIds([]);
-    }
-  };
-
-  const handleToggleDraftSelect = (id) => {
-    setSelectedDraftIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleBatchSubmit = async () => {
-    if (selectedDraftIds.length === 0) return;
-    if (
-      !confirm(
-        `Ajukan ${selectedDraftIds.length} pengiriman draft terpilih ke Direktur untuk di-ACC?`
-      )
-    ) {
-      return;
-    }
-
-    setBatchProcessing(true);
-    try {
-      for (const id of selectedDraftIds) {
-        await submitToDirector(id, {});
-      }
-      setSelectedDraftIds([]);
-      await refresh();
-    } catch (err) {
-      alert("Ada pengiriman yang gagal diajukan: " + (err instanceof Error ? err.message : err));
-    } finally {
-      setBatchProcessing(false);
     }
   };
 
@@ -282,17 +255,6 @@ export default function DeliveryOrderPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {selectedDraftIds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBatchSubmit}
-                  disabled={batchProcessing}
-                  className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition disabled:opacity-50"
-                >
-                  <Send size={13} />
-                  Ajukan Terpilih ({selectedDraftIds.length}) ke Direktur
-                </button>
-              )}
               <button
                 type="button"
                 onClick={refresh}
@@ -327,16 +289,6 @@ export default function DeliveryOrderPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
                   <tr>
-                    <th className="px-3 py-3 w-8 text-center">
-                      <input
-                        type="checkbox"
-                        onChange={handleSelectAllDrafts}
-                        checked={
-                          draftOrders.length > 0 && selectedDraftIds.length === draftOrders.length
-                        }
-                        className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                      />
-                    </th>
                     <th className="px-3 py-3">No. DO Ekspedisi</th>
                     <th className="px-3 py-3">Toko / Depo Tujuan</th>
                     <th className="px-3 py-3">Rute & Tarif</th>
@@ -346,23 +298,8 @@ export default function DeliveryOrderPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {draftOrders.map((order) => {
-                    const isSelected = selectedDraftIds.includes(order.id);
-                    return (
-                      <tr
-                        key={order.id}
-                        className={`transition hover:bg-slate-50/70 ${
-                          isSelected ? "bg-blue-50/50" : ""
-                        }`}
-                      >
-                        <td className="px-3 py-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleDraftSelect(order.id)}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                          />
-                        </td>
+                  {draftOrders.map((order) => (
+                    <tr key={order.id} className="transition hover:bg-slate-50/70">
                         <td className="px-3 py-3 font-mono font-bold text-slate-900">
                           {order.noDO}
                           <p className="text-[11px] font-normal text-slate-400 font-sans mt-0.5">
@@ -419,9 +356,8 @@ export default function DeliveryOrderPage() {
                             </button>
                           </div>
                         </td>
-                      </tr>
-                    );
-                  })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -632,6 +568,27 @@ export default function DeliveryOrderPage() {
                   required
                   className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Uang Jalan Supir *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Masukkan uang jalan untuk pengajuan ini"
+                  value={submitModal.uangJalanSupir}
+                  onChange={(e) =>
+                    setSubmitModal({ ...submitModal, uangJalanSupir: e.target.value })
+                  }
+                  required
+                  className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Nominal ditentukan per pengajuan dan tidak diambil dari master tarif.
+                </p>
               </div>
 
               <div>

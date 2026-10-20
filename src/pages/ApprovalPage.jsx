@@ -285,6 +285,9 @@ export default function ApprovalPage() {
                     <p className="text-slate-500 mt-0.5">
                       Ekspedisi: {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
                     </p>
+                    <p className="mt-0.5 font-semibold text-amber-700">
+                      Uang Jalan Supir: {order.uangJalanSupir == null ? "Belum diisi" : formatRupiah(order.uangJalanSupir)}
+                    </p>
                   </div>
 
                   <div>
@@ -436,6 +439,14 @@ export default function ApprovalPage() {
                 <strong className="text-slate-700">Total Tagihan:</strong>{" "}
                 <span className="font-bold text-emerald-700">
                   {formatRupiah(approvalModal.order?.totalSetelahPPh)}
+                </span>
+              </p>
+              <p>
+                <strong className="text-slate-700">Uang Jalan Supir:</strong>{" "}
+                <span className="font-bold text-amber-700">
+                  {approvalModal.order?.uangJalanSupir == null
+                    ? "Belum diisi"
+                    : formatRupiah(approvalModal.order.uangJalanSupir)}
                 </span>
               </p>
             </div>

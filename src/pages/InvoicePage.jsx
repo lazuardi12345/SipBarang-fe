@@ -628,6 +628,7 @@ export default function InvoicePage() {
           title={`Faktur Tagihan Resmi: ${selectedInvoice.noInvoice}`}
           onClose={() => setSelectedInvoice(null)}
           maxWidth="max-w-5xl"
+          className="invoice-print-modal"
         >
           <InvoiceOfficialView
             invoice={selectedInvoice}

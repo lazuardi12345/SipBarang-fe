@@ -7,7 +7,6 @@ const EMPTY_FORM = {
   areaDistribusi: "",
   tujuanKirim: "",
   total: "",
-  totalSetelahPPh: "",
 };
 
 export default function TarifPage() {
@@ -28,21 +27,18 @@ export default function TarifPage() {
     setMessage(null);
 
     const total = Number(form.total || 0);
-    const totalSetelahPPh = Number(form.totalSetelahPPh || total || 0);
 
     try {
       if (editingId) {
         await updateTarif(editingId, {
           ...form,
           total,
-          totalSetelahPPh,
         });
         setMessage({ type: "success", text: "Perubahan tarif berhasil disimpan." });
       } else {
         await createTarif({
           ...form,
           total,
-          totalSetelahPPh,
         });
         setMessage({ type: "success", text: "Tujuan baru berhasil ditambahkan." });
       }
@@ -61,7 +57,6 @@ export default function TarifPage() {
       areaDistribusi: tarif.areaDistribusi || "",
       tujuanKirim: tarif.tujuanKirim || "",
       total: tarif.total ?? "",
-      totalSetelahPPh: tarif.totalSetelahPPh ?? tarif.total ?? "",
     });
     setMessage(null);
   };
@@ -124,10 +119,6 @@ export default function TarifPage() {
             Tarif Bruto
             <input required min="0" type="number" value={form.total} onChange={update("total")} placeholder="0" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
           </label>
-          <label className="text-xs font-bold text-slate-600">
-            Uang Jalan Supir
-            <input min="0" type="number" value={form.totalSetelahPPh || form.total} onChange={update("totalSetelahPPh")} placeholder="0" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-          </label>
           <div className="flex flex-col gap-3 md:col-span-2 xl:col-span-4 xl:flex-row xl:items-center xl:justify-between">
             {message ? <p className={`text-sm font-semibold ${message.type === "success" ? "text-emerald-600" : "text-red-600"}`}>{message.text}</p> : <span />}
             <div className="flex items-center gap-2">
@@ -159,13 +150,12 @@ export default function TarifPage() {
           <RefreshCw size={17} className={loading ? "animate-spin text-blue-600" : "text-slate-400"} />
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-left text-sm">
+          <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="px-5 py-3 font-bold">Area</th>
                 <th className="px-5 py-3 font-bold">Tujuan</th>
                 <th className="px-5 py-3 text-right font-bold">Tarif Bruto</th>
-                <th className="px-5 py-3 text-right font-bold">Uang Jalan Supir</th>
                 <th className="px-5 py-3 text-center font-bold">Aksi</th>
               </tr>
             </thead>
@@ -175,7 +165,6 @@ export default function TarifPage() {
                   <td className="px-5 py-3">{tarif.areaDistribusi}</td>
                   <td className="px-5 py-3 font-semibold text-slate-900">{tarif.tujuanKirim}</td>
                   <td className="px-5 py-3 text-right">{formatRupiah(tarif.total)}</td>
-                  <td className="px-5 py-3 text-right font-semibold">{formatRupiah(tarif.totalSetelahPPh ?? tarif.total ?? 0)}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button
@@ -199,7 +188,7 @@ export default function TarifPage() {
                 </tr>
               ))}
               {!loading && tarifList.length === 0 && (
-                <tr><td colSpan="5" className="px-5 py-10 text-center text-sm text-slate-400">Belum ada master tujuan. Tambahkan tujuan pertama di atas.</td></tr>
+                <tr><td colSpan="4" className="px-5 py-10 text-center text-sm text-slate-400">Belum ada master tujuan. Tambahkan tujuan pertama di atas.</td></tr>
               )}
             </tbody>
           </table>
