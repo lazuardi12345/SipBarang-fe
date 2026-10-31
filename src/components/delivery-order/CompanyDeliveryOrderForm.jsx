@@ -32,14 +32,11 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
 
     if (
       !form.tarifId ||
-      !form.namaToko.trim() ||
       !form.noSchedule.trim() ||
       !form.tglSchedule ||
-      !form.tipeMobilRit.trim() ||
-      !form.noPolisiKendaraan.trim() ||
-      !form.namaSupir.trim()
+      !form.tipeMobilRit.trim()
     ) {
-      setError("Tujuan, nama toko/depo, No. Schedule, tanggal, tipe mobil, No. Polisi, dan nama supir wajib diisi.");
+      setError("Tujuan, No. Schedule, tanggal, dan tipe mobil/rit wajib diisi.");
       return;
     }
 
@@ -122,13 +119,12 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
           </label>
 
           <label className="block text-xs font-semibold text-slate-700">
-            Nama Toko / Depo Tujuan *
+            Nama Toko / Depo Tujuan (opsional)
             <input
               type="text"
               value={form.namaToko}
               onChange={(event) => setForm((current) => ({ ...current, namaToko: event.target.value }))}
               placeholder="Contoh: T6246 - HEMAT"
-              required
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
@@ -145,12 +141,12 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
           </label>
 
           <label className="block text-xs font-semibold text-slate-700 md:col-span-2">
-            Alamat Lengkap Tujuan
+            Alamat Tujuan (opsional)
             <textarea
               rows={2}
               value={form.alamatLengkapTujuan}
               onChange={(event) => setForm((current) => ({ ...current, alamatLengkapTujuan: event.target.value }))}
-              placeholder="Alamat toko/depo tujuan"
+              placeholder={tarifTerpilih ? `Jika belum diketahui, sementara: ${tarifTerpilih.tujuanKirim}` : "Alamat toko/depo tujuan"}
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
@@ -177,7 +173,7 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
           </span>
           <div>
             <h2 className="font-bold text-slate-900">Data Supir & Armada</h2>
-            <p className="text-xs text-slate-500">Schedule, armada, dan supir diinput di satu halaman agar lebih struktur.</p>
+            <p className="text-xs text-slate-500">Schedule wajib diisi; data supir dan plat bisa dilengkapi nanti.</p>
           </div>
         </div>
 
@@ -218,25 +214,23 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
           </label>
 
           <label className="block text-xs font-semibold text-slate-700">
-            No. Polisi Armada *
+            No. Polisi Armada (opsional)
             <input
               type="text"
               value={form.noPolisiKendaraan}
               onChange={(event) => setForm((current) => ({ ...current, noPolisiKendaraan: event.target.value }))}
               placeholder="Contoh: B 9482 KDA"
-              required
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
 
           <label className="block text-xs font-semibold text-slate-700">
-            Nama Supir *
+            Nama Supir (opsional)
             <input
               type="text"
               value={form.namaSupir}
               onChange={(event) => setForm((current) => ({ ...current, namaSupir: event.target.value }))}
               placeholder="Nama supir"
-              required
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
@@ -261,7 +255,7 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
           <span>Format alur baru</span>
         </div>
         <p className="mt-1 text-blue-800">
-          Semua data utama seperti tujuan, schedule, armada, dan supir diisi di halaman ini agar alur pengiriman lebih terstruktur dan mudah diikuti.
+          Jika nama toko atau alamat belum diketahui, tujuan rute dipakai sebagai data sementara. Data supir, nomor telepon, dan plat tidak diisi otomatis.
         </p>
       </div>
 

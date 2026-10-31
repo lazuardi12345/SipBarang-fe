@@ -12,6 +12,7 @@ import InvoicePage from './pages/InvoicePage';
 import InvoiceVerificationPage from './pages/InvoiceVerificationPage';
 import PembukuanPage from './pages/PembukuanPage';
 import TarifPage from './pages/TarifPage';
+import SuperadminPage from './pages/SuperadminPage';
 import Layout from './components/Layout';
 import { RoleGuard } from './components/layout/RoleGuard';
 import { UserRole } from './utils/constants';
@@ -71,6 +72,18 @@ function AppRoutes() {
             <Layout>
               <RoleGuard allow={[UserRole.ADMIN]}>
                 <TarifPage />
+              </RoleGuard>
+            </Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path={APP_ROUTES.superadmin}
+        element={
+          <PrivateRoute>
+            <Layout>
+              <RoleGuard allow={[UserRole.SUPERADMIN]}>
+                <SuperadminPage />
               </RoleGuard>
             </Layout>
           </PrivateRoute>

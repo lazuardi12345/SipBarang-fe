@@ -37,19 +37,35 @@ function getOrderDate(order) {
   return order.tglSchedule || "";
 }
 
+function getDocumentNumbers(order) {
+  const numbers = String(order.noDocPerusahaan || order.noDO || "")
+    .split(/[,;\n]+/)
+    .map((number) => number.trim())
+    .filter(Boolean);
+  return numbers.length > 0 ? numbers : ["-"];
+}
+
 function formatDate(value) {
   if (!value) return "";
   return formatTanggal(value);
 }
 
-function chunkRows(rows) {
-  const source = rows.length > 0 ? rows : [];
-  if (source.length === 0) return [[]];
-
+function chunkRows(orders) {
+  if (orders.length === 0) return [[]];
   const pages = [];
-  for (let index = 0; index < source.length; index += ROWS_PER_PAGE) {
-    pages.push(source.slice(index, index + ROWS_PER_PAGE));
+  let page = [];
+  let rowCount = 0;
+  for (const order of orders) {
+    const documentCount = getDocumentNumbers(order).length;
+    if (rowCount > 0 && rowCount + documentCount > ROWS_PER_PAGE) {
+      pages.push(page);
+      page = [];
+      rowCount = 0;
+    }
+    page.push(order);
+    rowCount += documentCount;
   }
+  if (page.length > 0) pages.push(page);
   return pages;
 }
 
@@ -106,6 +122,15 @@ export default function PembukuanPage() {
       ].some((value) => String(value || "").toLocaleLowerCase("id-ID").includes(query));
     });
   }, [orders, statusFilter, fromDate, toDate, search, mdoDrafts]);
+
+  const bookkeepingRows = filteredOrders.flatMap((order) =>
+    getDocumentNumbers(order).map((documentNumber, documentIndex, documentNumbers) => ({
+      order,
+      documentNumber,
+      documentIndex,
+      documentCount: documentNumbers.length,
+    }))
+  );
 
   const getLembarValue = (order) =>
     Object.prototype.hasOwnProperty.call(lembarDrafts, order.id)
@@ -174,13 +199,13 @@ export default function PembukuanPage() {
 
   const exportCsv = () => {
     const headers = ["No", "Distributor", "Tgl MDO", "No. Schedule", "MDO", "No Surat Jalan", "Lembar", "Rit"];
-    const records = filteredOrders.map((order, index) => [
+    const records = bookkeepingRows.map(({ order, documentNumber }, index) => [
       index + 1,
       order.namaToko || order.namaPenerima || "",
       formatDate(order.tglSchedule),
       order.noSchedule || "",
       getMdoValue(order),
-      order.noDocPerusahaan || order.noDO || "",
+      documentNumber === "-" ? "" : documentNumber,
       getLembarValue(order),
       getOrderRit(order),
     ]);
@@ -204,20 +229,44 @@ export default function PembukuanPage() {
 
     const pages = chunkRows(filteredOrders);
     const renderedPages = pages.map((pageRows, pageIndex) => {
-      const bodyRows = Array.from({ length: ROWS_PER_PAGE }, (_, rowIndex) => {
-        const order = pageRows[rowIndex];
-        return `
+      const pageRowCount = pageRows.reduce(
+        (total, order) => total + getDocumentNumbers(order).length,
+        0
+      );
+      let rowNumber = 0;
+      const bodyRows = pageRows.flatMap((order) => {
+        const documentNumbers = getDocumentNumbers(order);
+        return documentNumbers.map((documentNumber, documentIndex) => {
+          rowNumber += 1;
+          const mergedCells = documentIndex === 0
+            ? `
+              <td rowspan="${documentNumbers.length}">${escapeHtml(order.namaToko || order.namaPenerima || "")}</td>
+              <td rowspan="${documentNumbers.length}">${escapeHtml(formatDate(order.tglSchedule))}</td>
+              <td rowspan="${documentNumbers.length}">${escapeHtml(order.noSchedule || "")}</td>
+              <td rowspan="${documentNumbers.length}">${escapeHtml(getMdoValue(order))}</td>`
+            : "";
+          const finalMergedCells = documentIndex === 0
+            ? `
+              <td rowspan="${documentNumbers.length}">${escapeHtml(getLembarValue(order))}</td>
+              <td rowspan="${documentNumbers.length}">${escapeHtml(getOrderRit(order))}</td>`
+            : "";
+          return `
+            <tr>
+              <td>${rowNumber}</td>
+              ${mergedCells}
+              <td>${escapeHtml(documentNumber === "-" ? "" : documentNumber)}</td>
+              ${finalMergedCells}
+            </tr>`;
+        });
+      });
+      for (let rowIndex = pageRowCount; rowIndex < ROWS_PER_PAGE; rowIndex += 1) {
+        rowNumber += 1;
+        bodyRows.push(`
           <tr>
-            <td>${rowIndex + 1}</td>
-            <td>${escapeHtml(order ? order.namaToko || order.namaPenerima || "" : "")}</td>
-            <td>${escapeHtml(order ? formatDate(order.tglSchedule) : "")}</td>
-            <td>${escapeHtml(order?.noSchedule || "")}</td>
-            <td>${escapeHtml(order ? getMdoValue(order) : "")}</td>
-            <td>${escapeHtml(order ? order.noDocPerusahaan || order.noDO || "" : "")}</td>
-            <td>${escapeHtml(order ? getLembarValue(order) : "")}</td>
-            <td>${escapeHtml(order ? getOrderRit(order) : "")}</td>
-          </tr>`;
-      }).join("");
+            <td>${rowNumber}</td><td></td><td></td><td></td><td></td>
+            <td></td><td></td><td></td>
+          </tr>`);
+      }
 
       return `
         <section class="page${pageIndex === pages.length - 1 ? " last-page" : ""}">
@@ -241,7 +290,7 @@ export default function PembukuanPage() {
               <th>No</th><th>Distributor</th><th>Tgl MDO</th><th>No. Schedule</th>
               <th>MDO</th><th>No Surat Jalan</th><th>Lembar</th><th>Rit</th>
             </tr></thead>
-            <tbody>${bodyRows}</tbody>
+            <tbody>${bodyRows.join("")}</tbody>
           </table>
           <footer class="signatures">
             <div><span>Diserahkan Oleh,</span><span class="signature-space"></span><strong>________________________</strong></div>
@@ -395,7 +444,7 @@ export default function PembukuanPage() {
             <CalendarDays size={16} className="text-blue-700" />
             Buku Tanda Terima Surat Jalan
           </div>
-          <span className="text-xs text-slate-500">{filteredOrders.length} surat jalan</span>
+          <span className="text-xs text-slate-500">{bookkeepingRows.length} surat jalan</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-left text-xs">
@@ -415,39 +464,47 @@ export default function PembukuanPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr><td colSpan={canEditLembar ? 9 : 8} className="px-4 py-10 text-center text-slate-500">Memuat data pembukuan...</td></tr>
-              ) : filteredOrders.length === 0 ? (
+              ) : bookkeepingRows.length === 0 ? (
                 <tr><td colSpan={canEditLembar ? 9 : 8} className="px-4 py-10 text-center text-slate-500">Tidak ada surat jalan pada filter ini.</td></tr>
-              ) : filteredOrders.map((order, index) => (
-                <tr key={order.id} className="text-slate-700 hover:bg-slate-50">
+              ) : bookkeepingRows.map(({ order, documentNumber, documentIndex, documentCount }, index) => (
+                <tr key={`${order.id}-${documentIndex}`} className="text-slate-700 hover:bg-slate-50">
                   <td className="px-3 py-2.5 text-center">{index + 1}</td>
-                  <td className="px-3 py-2.5 font-semibold">{order.namaToko || order.namaPenerima || "-"}</td>
-                  <td className="px-3 py-2.5">{formatDate(order.tglSchedule) || "-"}</td>
-                  <td className="px-3 py-2.5 font-mono">{order.noSchedule || "-"}</td>
-                  <td className="px-3 py-2.5">
+                  {documentIndex === 0 && (
+                    <>
+                      <td rowSpan={documentCount} className="px-3 py-2.5 align-middle font-semibold">{order.namaToko || order.namaPenerima || "-"}</td>
+                      <td rowSpan={documentCount} className="px-3 py-2.5 align-middle">{formatDate(order.tglSchedule) || "-"}</td>
+                      <td rowSpan={documentCount} className="px-3 py-2.5 align-middle font-mono">{order.noSchedule || "-"}</td>
+                      <td rowSpan={documentCount} className="px-3 py-2.5 align-middle">
                     {canEditLembar ? (
                       <input
                         value={getMdoValue(order)}
                         maxLength={100}
                         onChange={(event) => updateMdoDraft(order.id, event.target.value)}
-                        aria-label={`Nomor MDO surat jalan ${order.noDocPerusahaan || order.noDO}`}
+                        aria-label={`Nomor MDO surat jalan ${documentNumber}`}
                         className="w-32 rounded-md border border-slate-200 px-2 py-1"
                       />
                     ) : getMdoValue(order) || "-"}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono">{order.noDocPerusahaan || order.noDO || "-"}</td>
-                  <td className="px-3 py-2.5">
+                      </td>
+                    </>
+                  )}
+                  <td className="px-3 py-2.5 font-mono">{documentNumber}</td>
+                  {documentIndex === 0 && (
+                    <>
+                      <td rowSpan={documentCount} className="px-3 py-2.5 align-middle">
                     {canEditLembar ? (
                       <input
                         value={getLembarValue(order)}
                         maxLength={100}
                         onChange={(event) => updateLembarDraft(order.id, event.target.value)}
-                        aria-label={`Lembar surat jalan ${order.noDocPerusahaan || order.noDO}`}
+                        aria-label={`Lembar surat jalan ${documentNumber}`}
                         className="w-24 rounded-md border border-slate-200 px-2 py-1"
                       />
                     ) : getLembarValue(order) || "-"}
-                  </td>
-                  <td className="px-3 py-2.5 text-center">{getOrderRit(order) || "-"}</td>
-                  {canEditLembar && (
+                      </td>
+                      <td rowSpan={documentCount} className="px-3 py-2.5 text-center align-middle">{getOrderRit(order) || "-"}</td>
+                    </>
+                  )}
+                  {canEditLembar && documentIndex === 0 && (
                     <td className="px-3 py-2.5">
                       <button
                         type="button"

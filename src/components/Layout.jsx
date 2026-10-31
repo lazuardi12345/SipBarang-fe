@@ -21,6 +21,7 @@ import {
   Share,
   PlusSquare,
   Sparkles,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, APP_NAME, COMPANY_NAME } from '../utils/constants';
@@ -29,10 +30,16 @@ import { Button } from './ui/Button';
 
 const MENU = [
   {
+    href: '/dashboard/superadmin',
+    label: 'Manajemen Sistem',
+    icon: Settings,
+    roles: [UserRole.SUPERADMIN],
+  },
+  {
     href: '/dashboard',
     label: 'Beranda',
     icon: LayoutDashboard,
-    roles: [UserRole.ADMIN, UserRole.DIREKTUR],
+    roles: [UserRole.ADMIN, UserRole.DIREKTUR, UserRole.SUPERADMIN],
   },
   {
     href: '/dashboard/pengiriman',

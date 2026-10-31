@@ -13,7 +13,13 @@ export function useDeliveryOrders() {
     try {
       const all = await deliveryOrderApi.list();
       const sorted = [...all].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) => {
+          const dateA = a.tanggalKirim || a.tglSchedule;
+          const dateB = b.tanggalKirim || b.tglSchedule;
+          if (!dateA) return dateB ? 1 : 0;
+          if (!dateB) return -1;
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        }
       );
       setOrders(sorted);
     } catch (e) {

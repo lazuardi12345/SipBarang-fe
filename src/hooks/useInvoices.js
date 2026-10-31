@@ -13,7 +13,8 @@ export function useInvoices() {
     try {
       const all = await invoiceApi.list();
       const sorted = [...all].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.tanggalInvoice).getTime() - new Date(a.tanggalInvoice).getTime()
       );
       setInvoices(sorted);
     } catch (e) {

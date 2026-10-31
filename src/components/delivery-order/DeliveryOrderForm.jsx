@@ -24,7 +24,7 @@ export function DeliveryOrderForm({
     namaSupir: "",
     noHpSupir: "",
     noPolisiKendaraan: "",
-    jenisKendaraan: JENIS_KENDARAAN[1],
+    jenisKendaraan: "",
     tarifId: "",
     alamatLengkapTujuan: "",
     namaPenerima: "",
@@ -53,7 +53,7 @@ export function DeliveryOrderForm({
         namaSupir: "",
         noHpSupir: "",
         noPolisiKendaraan: "",
-        jenisKendaraan: JENIS_KENDARAAN[1],
+        jenisKendaraan: "",
         tarifId: "",
         alamatLengkapTujuan: "",
         namaPenerima: "",
@@ -77,31 +77,32 @@ export function DeliveryOrderForm({
         <h3 className="mb-3 text-sm font-semibold text-slate-800">
           Data Supir & Kendaraan
         </h3>
+        <p className="mb-3 text-xs text-slate-500">
+          Data yang belum diketahui boleh dikosongkan dan dilengkapi nanti.
+        </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label="Nama Supir"
-            required
             value={form.namaSupir}
             onChange={(e) => update("namaSupir", e.target.value)}
           />
           <Input
             label="No. HP Supir"
-            required
             value={form.noHpSupir}
             onChange={(e) => update("noHpSupir", e.target.value)}
           />
           <Input
             label="No. Polisi Kendaraan"
-            required
             placeholder="cth: B 9123 ABC"
             value={form.noPolisiKendaraan}
             onChange={(e) => update("noPolisiKendaraan", e.target.value)}
           />
           <Select
-            label="Jenis Kendaraan"
+            label="Jenis Kendaraan (opsional)"
             value={form.jenisKendaraan}
             onChange={(e) => update("jenisKendaraan", e.target.value)}
           >
+            <option value="">-- Belum ditentukan --</option>
             {JENIS_KENDARAAN.map((jk) => (
               <option key={jk} value={jk}>
                 {jk}
@@ -126,25 +127,23 @@ export function DeliveryOrderForm({
             <option value="">-- Pilih tujuan kirim --</option>
             {tarifList.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.areaDistribusi} - {t.tujuanKirim}
+                {t.areaDistribusi} - {t.tujuanKirim} — {formatRupiah(t.total)}
               </option>
             ))}
           </Select>
           <Input
             label="Nama Penerima"
-            required
             value={form.namaPenerima}
             onChange={(e) => update("namaPenerima", e.target.value)}
           />
           <Input
             label="No. HP Penerima"
-            required
             value={form.noHpPenerima}
             onChange={(e) => update("noHpPenerima", e.target.value)}
           />
           <Input
-            label="Alamat Lengkap Tujuan"
-            required
+            label="Alamat Tujuan (opsional)"
+            placeholder={tarifTerpilih ? `Default sementara: ${tarifTerpilih.tujuanKirim}` : "Alamat lengkap tujuan"}
             value={form.alamatLengkapTujuan}
             onChange={(e) => update("alamatLengkapTujuan", e.target.value)}
           />
@@ -153,6 +152,7 @@ export function DeliveryOrderForm({
         {tarifTerpilih && (
           <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
             Tarif jasa pengiriman: <b>{formatRupiah(tarifTerpilih.total || 0)}</b>
+            <p className="mt-1 text-xs">Jika nama toko atau alamat belum diketahui, tujuan rute akan dipakai sebagai data sementara.</p>
           </div>
         )}
       </div>

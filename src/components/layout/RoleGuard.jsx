@@ -16,9 +16,19 @@ export function RoleGuard({ allow, children }) {
 
   if (allow && !allow.includes(user.role)) {
     const roleName =
-      user.role === UserRole.ADMIN ? "Admin Operasional" : "Direktur Utama";
+      user.role === UserRole.SUPERADMIN
+        ? "Superadmin"
+        : user.role === UserRole.ADMIN
+          ? "Admin Operasional"
+          : "Direktur Utama";
     const allowedNames = allow
-      .map((r) => (r === UserRole.DIREKTUR ? "Direktur Utama" : "Admin Operasional"))
+      .map((r) =>
+        r === UserRole.SUPERADMIN
+          ? "Superadmin"
+          : r === UserRole.DIREKTUR
+            ? "Direktur Utama"
+            : "Admin Operasional"
+      )
       .join(", ");
 
     return (

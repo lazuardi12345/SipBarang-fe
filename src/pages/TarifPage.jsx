@@ -4,7 +4,7 @@ import { useTarif } from "../hooks/useTarif";
 import { formatRupiah } from "../utils/format";
 
 const EMPTY_FORM = {
-  areaDistribusi: "",
+  areaDistribusi: "Karawang",
   tujuanKirim: "",
   total: "",
 };
@@ -40,7 +40,7 @@ export default function TarifPage() {
           ...form,
           total,
         });
-        setMessage({ type: "success", text: "Tujuan baru berhasil ditambahkan." });
+        setMessage({ type: "success", text: "Opsi tarif berhasil ditambahkan." });
       }
       setForm(EMPTY_FORM);
       setEditingId(null);
@@ -91,7 +91,7 @@ export default function TarifPage() {
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
           <MapPinned size={16} className="text-blue-600" />
-          {tarifList.length} tujuan terdaftar
+          {tarifList.length} opsi tarif
         </div>
       </div>
 
@@ -101,15 +101,15 @@ export default function TarifPage() {
             <Plus size={20} />
           </div>
           <div>
-            <h2 className="font-bold text-slate-900">{editingId ? "Edit Tujuan" : "Tambah Tujuan Baru"}</h2>
-            <p className="text-xs text-slate-500">Data ini akan langsung tersedia di form input pengiriman.</p>
+            <h2 className="font-bold text-slate-900">{editingId ? "Edit Tarif" : "Tambah Opsi Tarif"}</h2>
+            <p className="text-xs text-slate-500">Rute dan harga tersedia sebagai pilihan saat membuat DO. Rute yang sama boleh memiliki beberapa harga.</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-xs font-bold text-slate-600">
-            Area Distribusi
-            <input required value={form.areaDistribusi} onChange={update("areaDistribusi")} placeholder="Contoh: Jawa Barat" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            Kota Asal / Area Distribusi
+            <input required value={form.areaDistribusi} onChange={update("areaDistribusi")} placeholder="Contoh: Karawang" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
           </label>
           <label className="text-xs font-bold text-slate-600">
             Tujuan Kirim
@@ -134,7 +134,7 @@ export default function TarifPage() {
               )}
               <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                 <Save size={16} />
-                {saving ? "Menyimpan..." : editingId ? "Update Tujuan" : "Simpan Tujuan"}
+                {saving ? "Menyimpan..." : editingId ? "Update Tarif" : "Simpan Tarif"}
               </button>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function TarifPage() {
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
           <div>
-            <h2 className="font-bold text-slate-900">Daftar Tujuan</h2>
+            <h2 className="font-bold text-slate-900">Daftar Tarif</h2>
             <p className="text-xs text-slate-500">Master tarif dari database real.</p>
           </div>
           <RefreshCw size={17} className={loading ? "animate-spin text-blue-600" : "text-slate-400"} />
@@ -153,7 +153,7 @@ export default function TarifPage() {
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
               <tr>
-                <th className="px-5 py-3 font-bold">Area</th>
+                <th className="px-5 py-3 font-bold">Asal</th>
                 <th className="px-5 py-3 font-bold">Tujuan</th>
                 <th className="px-5 py-3 text-right font-bold">Tarif Bruto</th>
                 <th className="px-5 py-3 text-center font-bold">Aksi</th>

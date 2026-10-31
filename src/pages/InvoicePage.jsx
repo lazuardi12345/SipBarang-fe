@@ -563,7 +563,7 @@ export default function InvoicePage() {
                         <StatusBadgeInvoice status={invoice.status} />
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {formatTanggalWaktu(invoice.createdAt || invoice.tanggalInvoice)}
+                        {formatTanggalWaktu(invoice.tanggalInvoice)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">

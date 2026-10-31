@@ -11,6 +11,7 @@ export const TOKEN_KEY = "token";
 export const UserRole = {
   DIREKTUR: "DIREKTUR",
   ADMIN: "ADMIN",
+  SUPERADMIN: "SUPERADMIN",
 };
 
 export const StatusDO = {

@@ -3,6 +3,14 @@ import { CompanyKopSurat } from "../common/CompanyKopSurat";
 import { formatRupiah, formatTanggal } from "../../utils/format";
 import { Printer, X, FileText } from "lucide-react";
 
+function getDocumentNumbers(item) {
+  const numbers = String(item.noDocPerusahaan || item.noDO || "")
+    .split(/[,;\n]+/)
+    .map((number) => number.trim())
+    .filter(Boolean);
+  return numbers.length > 0 ? numbers : ["-"];
+}
+
 export function InvoiceOfficialView({ invoice, onClose }) {
   const printAreaRef = useRef(null);
   if (!invoice) return null;
@@ -211,16 +219,21 @@ export function InvoiceOfficialView({ invoice, onClose }) {
     }
   };
 
-  // Tanggal jatuh tempo (30 hari dari tanggal invoice)
-  const tglInvoice = new Date(invoice.createdAt || invoice.tanggalInvoice || new Date());
-  const tglJatuhTempo = new Date(tglInvoice);
-  tglJatuhTempo.setDate(tglJatuhTempo.getDate() + 30);
+  const tglInvoice = new Date(invoice.tanggalInvoice || new Date());
 
   // Ambil data items / deliveryOrders
   const itemsList =
     (invoice.items && invoice.items.length > 0
       ? invoice.items
       : invoice.deliveryOrders) || [];
+  const recapItems = itemsList.flatMap((item) =>
+    getDocumentNumbers(item).map((documentNumber, documentIndex, documentNumbers) => ({
+      item,
+      documentNumber,
+      documentIndex,
+      documentCount: documentNumbers.length,
+    }))
+  );
 
   const groupedItems = Object.values(
     itemsList.reduce((groups, item) => {
@@ -369,12 +382,6 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 <span className="text-slate-500">Tanggal: </span>
                 <span className="font-medium text-slate-800">
                   {formatTanggal(tglInvoice.toISOString())}
-                </span>
-              </p>
-              <p className="print-hidden">
-                <span className="text-slate-500">Jatuh Tempo: </span>
-                <span className="font-semibold text-red-600">
-                  {formatTanggal(tglJatuhTempo.toISOString())}
                 </span>
               </p>
             </div>
@@ -593,20 +600,25 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {itemsList.length > 0 ? itemsList.map((item, index) => {
+                {recapItems.length > 0 ? recapItems.map(({ item, documentNumber, documentIndex, documentCount }, index) => {
                   const tarif = Number(item.biayaEkspedisi ?? item.tarifPengiriman ?? 0);
                   const pph2 = Number(item.pph2 ?? Math.round(tarif * 0.02));
                   const netto = Number(item.totalSetelahPPh ?? item.totalSetelahPph ?? tarif - pph2);
                   return (
-                    <tr key={item.deliveryOrderId || item.id || index}>
+                    <tr key={`${item.deliveryOrderId || item.id || index}-${documentIndex}`}>
                       <td className="text-center">{index + 1}</td>
-                      <td>{item.noSchedule || "-"}</td>
-                      <td>{item.noDocPerusahaan || item.noDO || "-"}</td>
-                      <td className="text-center">{formatTanggal(item.tanggalKirim || item.tglDocPerusahaan)}</td>
-                      <td className="text-center">{String(item.tipeMobilRit || "1").match(/\d+/)?.[0] || "1"}</td>
-                      <td>{getDestination(item.tujuanKirim || item.areaDistribusi)}</td>
-                      <td className="text-right whitespace-nowrap">{formatRupiah(tarif)}</td>
-                      <td className="text-right whitespace-nowrap">{formatRupiah(netto)}</td>
+                      {documentIndex === 0 && (
+                        <>
+                          <td rowSpan={documentCount}>{item.noSchedule || "-"}</td>
+                          <td>{documentNumber === "-" ? "-" : documentNumber}</td>
+                          <td rowSpan={documentCount} className="text-center">{formatTanggal(item.tanggalKirim || item.tglDocPerusahaan)}</td>
+                          <td rowSpan={documentCount} className="text-center">{String(item.tipeMobilRit || "1").match(/\d+/)?.[0] || "1"}</td>
+                          <td rowSpan={documentCount}>{getDestination(item.tujuanKirim || item.areaDistribusi)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(tarif)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(netto)}</td>
+                        </>
+                      )}
+                      {documentIndex > 0 && <td>{documentNumber}</td>}
                     </tr>
                   );
                 }) : (
