@@ -11,6 +11,14 @@ function getDocumentNumbers(item) {
   return numbers.length > 0 ? numbers : ["-"];
 }
 
+function getDocumentRit(item, documentNumber) {
+  const documentRit = item.ritPerDocument?.find(
+    (entry) => entry.noDocPerusahaan === documentNumber
+  )?.rit;
+  const value = documentRit || item.tipeMobilRit || "1";
+  return String(value).match(/\d+/)?.[0] || value;
+}
+
 function getInvoiceItemAmounts(item) {
   const tarif = Number(item.biayaEkspedisi ?? item.tarifPengiriman ?? 0);
   const pph2 = Math.round(tarif * 0.02);
@@ -232,12 +240,29 @@ export function InvoiceOfficialView({ invoice, onClose }) {
     (invoice.items && invoice.items.length > 0
       ? invoice.items
       : invoice.deliveryOrders) || [];
-  const recapItems = itemsList.flatMap((item) =>
-    getDocumentNumbers(item).map((documentNumber, documentIndex, documentNumbers) => ({
+  const recapItemsBySchedule = new Map();
+  itemsList.forEach((item, itemIndex) => {
+    const schedule = String(item.noSchedule || "").trim();
+    const hasSchedule = schedule && schedule !== "-";
+    const scheduleKey = hasSchedule
+      ? schedule
+      : `missing-${item.deliveryOrderId || item.id || itemIndex}`;
+    const rows = getDocumentNumbers(item).map((documentNumber, documentIndex, documentNumbers) => ({
       item,
       documentNumber,
       documentIndex,
       documentCount: documentNumbers.length,
+      scheduleKey,
+    }));
+    const group = recapItemsBySchedule.get(scheduleKey) || [];
+    group.push(...rows);
+    recapItemsBySchedule.set(scheduleKey, group);
+  });
+  const recapItems = [...recapItemsBySchedule.values()].flatMap((rows) =>
+    rows.map((row, scheduleIndex) => ({
+      ...row,
+      scheduleIndex,
+      scheduleRowSpan: rows.length,
     }))
   );
 
@@ -587,15 +612,17 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {recapItems.length > 0 ? recapItems.map(({ item, documentNumber, documentIndex, documentCount }, index) => {
+                {recapItems.length > 0 ? recapItems.map(({ item, documentNumber, documentIndex, documentCount, scheduleKey, scheduleIndex, scheduleRowSpan }, index) => {
                   const { tarif, pph2, total } = getInvoiceItemAmounts(item);
                   return (
-                    <tr key={`${item.deliveryOrderId || item.id || index}-${documentIndex}`}>
+                    <tr key={`${item.deliveryOrderId || item.id || index}-${scheduleKey}-${documentIndex}`}>
+                      {scheduleIndex === 0 && (
+                        <td rowSpan={scheduleRowSpan}>{item.noSchedule || "-"}</td>
+                      )}
                       {documentIndex === 0 && (
                         <>
-                          <td rowSpan={documentCount}>{item.noSchedule || "-"}</td>
                           <td>{documentNumber === "-" ? "-" : documentNumber}</td>
-                          <td rowSpan={documentCount} className="text-center">{String(item.tipeMobilRit || "1").match(/\d+/)?.[0] || "1"}</td>
+                          <td className="text-center">{getDocumentRit(item, documentNumber)}</td>
                           <td rowSpan={documentCount} className="text-center">{formatTanggal(item.tanggalKirim || item.tglDocPerusahaan)}</td>
                           <td rowSpan={documentCount}>{getDestination(item.tujuanKirim || item.areaDistribusi)}</td>
                           <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(tarif)}</td>
@@ -603,7 +630,12 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                           <td rowSpan={documentCount} className="text-right whitespace-nowrap font-semibold">{formatRupiah(total)}</td>
                         </>
                       )}
-                      {documentIndex > 0 && <td>{documentNumber}</td>}
+                      {documentIndex > 0 && (
+                        <>
+                          <td>{documentNumber}</td>
+                          <td className="text-center">{getDocumentRit(item, documentNumber)}</td>
+                        </>
+                      )}
                     </tr>
                   );
                 }) : (
