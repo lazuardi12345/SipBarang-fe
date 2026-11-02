@@ -3,6 +3,8 @@ import { CalendarDays, Download, Printer, RefreshCw, Search } from "lucide-react
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { useAuth } from "../context/AuthContext";
 import { deliveryOrderApi } from "../api/deliveryOrders";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import {
   COMPANY_ADDRESS,
   COMPANY_EMAIL,
@@ -38,7 +40,7 @@ function getOrderDate(order) {
 }
 
 function getDocumentNumbers(order) {
-  const numbers = String(order.noDocPerusahaan || order.noDO || "")
+  const numbers = String(order.noDocPerusahaan || order.noSchedule || "")
     .split(/[,;\n]+/)
     .map((number) => number.trim())
     .filter(Boolean);
@@ -116,14 +118,25 @@ export default function PembukuanPage() {
         order.noSchedule,
         getMdoValue(order),
         order.noDocPerusahaan,
-        order.noDO,
         order.tujuanKirim,
         order.areaDistribusi,
       ].some((value) => String(value || "").toLocaleLowerCase("id-ID").includes(query));
     });
   }, [orders, statusFilter, fromDate, toDate, search, mdoDrafts]);
+  const pagination = usePagination(
+    filteredOrders,
+    `${statusFilter}|${fromDate}|${toDate}|${search}`
+  );
 
   const bookkeepingRows = filteredOrders.flatMap((order) =>
+    getDocumentNumbers(order).map((documentNumber, documentIndex, documentNumbers) => ({
+      order,
+      documentNumber,
+      documentIndex,
+      documentCount: documentNumbers.length,
+    }))
+  );
+  const visibleBookkeepingRows = pagination.items.flatMap((order) =>
     getDocumentNumbers(order).map((documentNumber, documentIndex, documentNumbers) => ({
       order,
       documentNumber,
@@ -466,9 +479,9 @@ export default function PembukuanPage() {
                 <tr><td colSpan={canEditLembar ? 9 : 8} className="px-4 py-10 text-center text-slate-500">Memuat data pembukuan...</td></tr>
               ) : bookkeepingRows.length === 0 ? (
                 <tr><td colSpan={canEditLembar ? 9 : 8} className="px-4 py-10 text-center text-slate-500">Tidak ada surat jalan pada filter ini.</td></tr>
-              ) : bookkeepingRows.map(({ order, documentNumber, documentIndex, documentCount }, index) => (
+              ) : visibleBookkeepingRows.map(({ order, documentNumber, documentIndex, documentCount }, index) => (
                 <tr key={`${order.id}-${documentIndex}`} className="text-slate-700 hover:bg-slate-50">
-                  <td className="px-3 py-2.5 text-center">{index + 1}</td>
+                  <td className="px-3 py-2.5 text-center">{pagination.startIndex + index + 1}</td>
                   {documentIndex === 0 && (
                     <>
                       <td rowSpan={documentCount} className="px-3 py-2.5 align-middle font-semibold">{order.namaToko || order.namaPenerima || "-"}</td>
@@ -521,6 +534,9 @@ export default function PembukuanPage() {
             </tbody>
           </table>
         </div>
+        {!loading && filteredOrders.length > 0 && (
+          <Pagination {...pagination} onPageChange={pagination.setPage} />
+        )}
       </section>
 
     </div>

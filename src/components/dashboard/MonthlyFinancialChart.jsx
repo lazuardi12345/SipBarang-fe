@@ -222,8 +222,8 @@ export default function MonthlyFinancialChart({ orders }) {
             <table className="min-w-[900px] w-full text-left text-xs">
               <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Tanggal DO</th>
-                  <th className="px-4 py-3 font-semibold">No. DO</th>
+                  <th className="px-4 py-3 font-semibold">Tanggal kirim</th>
+                  <th className="px-4 py-3 font-semibold">No. Schedule</th>
                   <th className="px-4 py-3 font-semibold">Sopir / Kendaraan</th>
                   <th className="px-4 py-3 font-semibold">Tujuan</th>
                   <th className="px-4 py-3 text-right font-semibold">Tarif Bruto</th>
@@ -240,7 +240,7 @@ export default function MonthlyFinancialChart({ orders }) {
                         {formatTanggal(order.tanggalKirim)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono font-semibold text-slate-800">
-                        {order.noDO}
+                        {order.noSchedule || "-"}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
                         <div className="font-medium">{order.namaSupir || "—"}</div>

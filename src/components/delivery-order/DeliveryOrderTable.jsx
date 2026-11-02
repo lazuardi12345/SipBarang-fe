@@ -20,7 +20,7 @@ export function DeliveryOrderTable({
         <thead className="bg-slate-50">
           <tr>
             <th className="px-4 py-3 text-left font-medium text-slate-600">
-              No. DO
+              No. Schedule
             </th>
             <th className="px-4 py-3 text-left font-medium text-slate-600">
               Tanggal
@@ -48,7 +48,7 @@ export function DeliveryOrderTable({
           {orders.map((order) => (
             <tr key={order.id} className="hover:bg-slate-50">
               <td className="px-4 py-3 font-medium text-slate-800">
-                {order.noDO}
+                {order.noSchedule || "-"}
               </td>
               <td className="px-4 py-3 text-slate-600">
                 {formatTanggal(order.tanggalKirim)}

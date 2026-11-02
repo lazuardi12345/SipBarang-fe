@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { Modal } from "../components/ui/Modal";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../utils/format";
 import {
   ClipboardCheck,
@@ -55,6 +57,7 @@ export default function ApprovalPage() {
       : activeTab === "TERKIRIM"
       ? deliveredOrders
       : rejectedOrders;
+  const pagination = usePagination(filteredOrders, activeTab);
 
   const handleOpenAction = (order, type) => {
     setActionError(null);
@@ -240,7 +243,7 @@ export default function ApprovalPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((order) => (
+            {pagination.items.map((order) => (
               <div
                 key={order.id}
                 className="rounded-xl border border-slate-200 p-5 hover:border-blue-300 transition shadow-xs"
@@ -248,10 +251,7 @@ export default function ApprovalPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3 mb-4">
                   <div className="flex items-center gap-3">
                     <span className="rounded-lg bg-blue-50 px-2.5 py-1 font-mono text-sm font-bold text-blue-800">
-                      {order.noDO}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      Schedule: <strong className="text-slate-700">{order.noSchedule || "-"}</strong>
+                      {order.noSchedule || "-"}
                     </span>
                     <span className="text-xs text-slate-500">
                       Tgl Kirim: <strong className="text-slate-700">{formatTanggal(order.tanggalKirim)}</strong>
@@ -402,6 +402,7 @@ export default function ApprovalPage() {
                 )}
               </div>
             ))}
+            <Pagination {...pagination} onPageChange={pagination.setPage} />
           </div>
         )}
       </div>
@@ -425,7 +426,7 @@ export default function ApprovalPage() {
           <div className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs space-y-1">
               <p>
-                <strong className="text-slate-700">No. DO:</strong> {approvalModal.order?.noDO}
+                <strong className="text-slate-700">No. Schedule:</strong> {approvalModal.order?.noSchedule || "-"}
               </p>
               <p>
                 <strong className="text-slate-700">Toko Tujuan:</strong>{" "}

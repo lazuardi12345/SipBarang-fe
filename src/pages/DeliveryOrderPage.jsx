@@ -7,7 +7,9 @@ import { CompanyDeliveryOrderForm } from "../components/delivery-order/CompanyDe
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { Modal } from "../components/ui/Modal";
+import { Pagination } from "../components/ui/Pagination";
 import { formatRupiah, formatTanggal } from "../utils/format";
+import { usePagination } from "../hooks/usePagination";
 import {
   PlusCircle,
   ListFilter,
@@ -54,7 +56,7 @@ export default function DeliveryOrderPage() {
     if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchNo = o.noDO?.toLowerCase().includes(q);
+      const matchNo = o.noSchedule?.toLowerCase().includes(q);
       const matchToko = (o.namaToko || o.namaPenerima || "").toLowerCase().includes(q);
       const matchDoc = (o.noDocPerusahaan || "").toLowerCase().includes(q);
       const matchSupir = (o.namaSupir || "").toLowerCase().includes(q);
@@ -63,6 +65,8 @@ export default function DeliveryOrderPage() {
     }
     return true;
   });
+  const draftPagination = usePagination(draftOrders, activeTab);
+  const allPagination = usePagination(filteredAllOrders, `${activeTab}|${statusFilter}|${searchQuery}`);
 
   const handleCreateOrder = async (input) => {
     setSubmitting(true);
@@ -145,13 +149,13 @@ export default function DeliveryOrderPage() {
 
   const handleDeleteOrder = async (order) => {
     if (!order) return;
-    const ok = window.confirm(`Hapus pengiriman ${order.noDO}? Tindakan ini tidak bisa dibatalkan.`);
+    const ok = window.confirm(`Hapus pengiriman ${order.noSchedule || "ini"}? Tindakan ini tidak bisa dibatalkan.`);
     if (!ok) return;
 
     try {
       await remove(order.id);
       await refresh();
-      alert(`Pengiriman ${order.noDO} berhasil dihapus.`);
+      alert(`Pengiriman ${order.noSchedule || "Pengiriman"} berhasil dihapus.`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menghapus pengiriman");
     }
@@ -289,7 +293,7 @@ export default function DeliveryOrderPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
                   <tr>
-                    <th className="px-3 py-3">No. DO Ekspedisi</th>
+                    <th className="px-3 py-3">No. Schedule</th>
                     <th className="px-3 py-3">Toko / Depo Tujuan</th>
                     <th className="px-3 py-3">Rute & Tarif</th>
                     <th className="px-3 py-3">Supir & Armada</th>
@@ -298,10 +302,10 @@ export default function DeliveryOrderPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {draftOrders.map((order) => (
+                  {draftPagination.items.map((order) => (
                     <tr key={order.id} className="transition hover:bg-slate-50/70">
                         <td className="px-3 py-3 font-mono font-bold text-slate-900">
-                          {order.noDO}
+                          {order.noSchedule || "-"}
                           <p className="text-[11px] font-normal text-slate-400 font-sans mt-0.5">
                             {formatTanggal(order.createdAt)}
                           </p>
@@ -362,6 +366,9 @@ export default function DeliveryOrderPage() {
               </table>
             </div>
           )}
+          {!loading && draftOrders.length > 0 && (
+            <Pagination {...draftPagination} onPageChange={draftPagination.setPage} />
+          )}
         </div>
       )}
 
@@ -417,11 +424,12 @@ export default function DeliveryOrderPage() {
               <p className="text-sm font-semibold text-slate-700">Tidak ada data yang sesuai filter</p>
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
                   <tr>
-                    <th className="px-4 py-3">No. DO Ekspedisi</th>
+                    <th className="px-4 py-3">No. Schedule</th>
                     <th className="px-4 py-3">Doc Pabrik / Toko</th>
                     <th className="px-4 py-3">Rute & Tujuan</th>
                     <th className="px-4 py-3">Supir & No Polisi</th>
@@ -431,10 +439,10 @@ export default function DeliveryOrderPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredAllOrders.map((order) => (
+                  {allPagination.items.map((order) => (
                     <tr key={order.id} className="hover:bg-slate-50/60 transition">
                       <td className="px-4 py-3 font-mono font-bold text-slate-900">
-                        {order.noDO}
+                        {order.noSchedule || "-"}
                         <p className="text-[11px] font-normal text-slate-400 font-sans mt-0.5">
                           {formatTanggal(order.createdAt)}
                         </p>
@@ -501,6 +509,8 @@ export default function DeliveryOrderPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination {...allPagination} onPageChange={allPagination.setPage} />
+            </>
           )}
         </div>
       )}
@@ -514,8 +524,8 @@ export default function DeliveryOrderPage() {
           <div className="space-y-4 text-xs">
             <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 space-y-1">
               <p>
-                <strong className="text-blue-950">No. DO Ekspedisi:</strong>{" "}
-                <span className="font-mono font-bold">{submitModal.order?.noDO}</span>
+                <strong className="text-blue-950">No. Schedule:</strong>{" "}
+                <span className="font-mono font-bold">{submitModal.order?.noSchedule || "-"}</span>
               </p>
               <p>
                 <strong className="text-blue-950">Toko Tujuan:</strong>{" "}

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { Modal } from "../components/ui/Modal";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { ReportDeliveryForm } from "../components/delivery-order/ReportDeliveryForm";
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
@@ -35,6 +37,9 @@ export default function PelaporanPage() {
 
   // 3. Selesai dan telah di-ACC Direktur
   const deliveredOrders = orders.filter((o) => o.status === "TERKIRIM");
+  const readyPagination = usePagination(readyOrders);
+  const pendingPagination = usePagination(pendingConfirmationOrders);
+  const deliveredPagination = usePagination(deliveredOrders);
 
   const handleLaporkan = async (input) => {
     await laporkanTerkirim(input);
@@ -98,7 +103,7 @@ export default function PelaporanPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {readyOrders.map((order) => (
+            {readyPagination.items.map((order) => (
               <div
                 key={order.id}
                 className="rounded-xl border border-blue-200 bg-blue-50/30 p-4 hover:border-blue-400 transition"
@@ -106,7 +111,7 @@ export default function PelaporanPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-sm text-slate-900">{order.noDO}</span>
+                      <span className="font-mono font-bold text-sm text-slate-900">{order.noSchedule || "-"}</span>
                       <StatusBadge status={order.status} />
                     </div>
                     <p className="text-slate-800 font-semibold text-sm">
@@ -143,6 +148,7 @@ export default function PelaporanPage() {
                 </div>
               </div>
             ))}
+            <Pagination {...readyPagination} onPageChange={readyPagination.setPage} />
           </div>
         )}
       </div>
@@ -164,14 +170,14 @@ export default function PelaporanPage() {
           </div>
 
           <div className="space-y-3">
-            {pendingConfirmationOrders.map((order) => (
+            {pendingPagination.items.map((order) => (
               <div
                 key={order.id}
                 className="rounded-xl border border-purple-200 bg-white p-4 text-xs space-y-2"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-slate-900">{order.noDO}</span>
+                    <span className="font-mono font-bold text-slate-900">{order.noSchedule || "-"}</span>
                     <StatusBadge status={order.status} />
                   </div>
                   <span className="font-bold text-emerald-700">
@@ -201,6 +207,7 @@ export default function PelaporanPage() {
                 )}
               </div>
             ))}
+            <Pagination {...pendingPagination} onPageChange={pendingPagination.setPage} />
           </div>
         </div>
       )}
@@ -229,7 +236,7 @@ export default function PelaporanPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
                 <tr>
-                  <th className="px-4 py-3">No. DO</th>
+                  <th className="px-4 py-3">No. Schedule</th>
                   <th className="px-4 py-3">Toko / Tujuan</th>
                   <th className="px-4 py-3">Tanggal Selesai</th>
                   <th className="px-4 py-3">Tagihan Bersih</th>
@@ -237,9 +244,9 @@ export default function PelaporanPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {deliveredOrders.map((order) => (
+                {deliveredPagination.items.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/60 transition">
-                    <td className="px-4 py-3 font-mono font-bold text-slate-900">{order.noDO}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-slate-900">{order.noSchedule || "-"}</td>
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-900">{order.namaToko || order.namaPenerima}</p>
                       <p className="text-slate-500">{order.tujuanKirim}</p>
@@ -269,12 +276,15 @@ export default function PelaporanPage() {
             </table>
           </div>
         )}
+        {deliveredOrders.length > 0 && (
+          <Pagination {...deliveredPagination} onPageChange={deliveredPagination.setPage} />
+        )}
       </div>
 
       {/* Modal Lapor Terkirim */}
       {selectedOrder && (
         <Modal
-          title={`Laporan Pengiriman: ${selectedOrder.noDO}`}
+          title={`Laporan Pengiriman: ${selectedOrder.noSchedule || "-"}`}
           onClose={() => setSelectedOrder(null)}
         >
           <ReportDeliveryForm

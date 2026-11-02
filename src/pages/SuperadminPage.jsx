@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { superadminApi } from "../api/superadmin";
 import { Modal } from "../components/ui/Modal";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import { formatRupiah, formatTanggal } from "../utils/format";
 import { STATUS_LABEL, StatusDO, StatusInvoice, UserRole } from "../utils/constants";
 
@@ -169,7 +171,7 @@ function getFields(tab) {
     { key: "totalTagihan", label: "Total tagihan", type: "number", min: 0 },
   ];
   if (tab === "deliveryOrders") return [
-    { key: "noDo", label: "Nomor DO", required: true },
+    { key: "noDo", label: "Nomor DO internal (database)", required: true },
     { key: "status", label: "Status", type: "select", options: ORDER_STATUSES },
     { key: "tanggalKirim", label: "Tanggal kirim", type: "date" },
     { key: "tarifId", label: "Opsi tarif", type: "select", options: [], required: true },
@@ -369,6 +371,7 @@ export default function SuperadminPage() {
   };
 
   const title = TABS.find((item) => item.id === tab)?.label || "Manajemen";
+  const pagination = usePagination(filteredRows, `${tab}|${search}`);
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-6">
@@ -433,7 +436,7 @@ export default function SuperadminPage() {
               <tr>{getHeaders(tab).map((header) => <th key={header} className="px-4 py-3 font-bold">{header}</th>)}<th className="px-4 py-3 text-right font-bold">Aksi</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredRows.map((row) => <tr key={row.id} className="align-top text-slate-700 hover:bg-slate-50/70">
+              {pagination.items.map((row) => <tr key={row.id} className="align-top text-slate-700 hover:bg-slate-50/70">
                 {renderCells(tab, row)}
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
@@ -456,6 +459,9 @@ export default function SuperadminPage() {
             </tbody>
           </table>
         </div>
+        {!loading && filteredRows.length > 0 && (
+          <Pagination {...pagination} onPageChange={pagination.setPage} />
+        )}
       </section>
 
       {draft && <Modal title={`${editing ? "Edit" : "Tambah"} ${title}`} onClose={closeEditor} maxWidth="max-w-6xl">
@@ -483,9 +489,9 @@ export default function SuperadminPage() {
 function getHeaders(tab) {
   if (tab === "users") return ["Nama", "Email", "Role", "Dibuat", "Status"];
   if (tab === "tarifs") return ["Asal", "Tujuan", "Tarif bruto", "Status"];
-  if (tab === "deliveryOrders") return ["No. DO", "Schedule", "Surat jalan", "Tanggal kirim", "Tujuan", "Tarif", "Uang jalan sopir", "Rit", "Status"];
+  if (tab === "deliveryOrders") return ["No. Schedule", "Surat jalan", "Tanggal kirim", "Tujuan", "Tarif", "Uang jalan sopir", "Rit", "Status"];
   if (tab === "invoices") return ["No. Invoice", "Tanggal", "Pelanggan", "Item", "Total tagihan", "Status"];
-  return ["No. DO", "Schedule", "Penerima", "Tanggal diterima", "Catatan", "Status"];
+  return ["No. Schedule", "Penerima", "Tanggal diterima", "Catatan", "Status"];
 }
 
 function renderCells(tab, row) {
@@ -498,13 +504,13 @@ function renderCells(tab, row) {
     <td className="px-4 py-3">{row.areaDistribusi}</td><td className="px-4 py-3 font-semibold text-slate-900">{row.tujuanKirim}</td><td className="whitespace-nowrap px-4 py-3 font-semibold">{formatRupiah(row.total)}</td><td className="px-4 py-3">{badge("", !row.active)}</td>
   </>;
   if (tab === "deliveryOrders") return <>
-    <td className="px-4 py-3 font-mono font-semibold text-slate-900">{row.noDo}</td><td className="px-4 py-3">{row.schedule?.noSchedule || "-"}</td><td className="px-4 py-3">{row.document?.noDocPerusahaan || "-"}</td>{dateCell(row.tanggalKirim)}<td className="px-4 py-3">{row.tujuanKirim || "-"}</td><td className="whitespace-nowrap px-4 py-3">{formatRupiah(row.biayaEkspedisi)}</td><td className="whitespace-nowrap px-4 py-3">{row.uangJalanSupir == null ? "Belum diisi" : formatRupiah(row.uangJalanSupir)}</td><td className="px-4 py-3">{row.schedule?.tipeMobilRit || "-"}</td><td className="px-4 py-3">{badge(row.status)}</td>
+    <td className="px-4 py-3 font-mono font-semibold text-slate-900">{row.schedule?.noSchedule || "-"}</td><td className="px-4 py-3">{row.document?.noDocPerusahaan || "-"}</td>{dateCell(row.tanggalKirim)}<td className="px-4 py-3">{row.tujuanKirim || "-"}</td><td className="whitespace-nowrap px-4 py-3">{formatRupiah(row.biayaEkspedisi)}</td><td className="whitespace-nowrap px-4 py-3">{row.uangJalanSupir == null ? "Belum diisi" : formatRupiah(row.uangJalanSupir)}</td><td className="px-4 py-3">{row.schedule?.tipeMobilRit || "-"}</td><td className="px-4 py-3">{badge(row.status)}</td>
   </>;
   if (tab === "invoices") return <>
     <td className="px-4 py-3 font-mono font-semibold text-slate-900">{row.noInvoice}</td>{dateCell(row.tanggalInvoice)}<td className="px-4 py-3">{row.namaPelanggan}</td><td className="px-4 py-3">{row.items?.length || 0} item</td><td className="whitespace-nowrap px-4 py-3 font-semibold">{formatRupiah(row.totalTagihan)}</td><td className="px-4 py-3">{badge(row.status)}</td>
   </>;
   return <>
-    <td className="px-4 py-3 font-mono font-semibold">{row.noDo || "-"}</td><td className="px-4 py-3">{row.noSchedule || "-"}</td><td className="px-4 py-3">{row.namaPenerimaBarang || "-"}</td>{dateCell(row.tanggalDiterima)}<td className="max-w-xs truncate px-4 py-3" title={row.catatanPelaporan || ""}>{row.catatanPelaporan || "-"}</td><td className="px-4 py-3">{badge("", !row.active)}</td>
+    <td className="px-4 py-3 font-mono font-semibold">{row.noSchedule || "-"}</td><td className="px-4 py-3">{row.namaPenerimaBarang || "-"}</td>{dateCell(row.tanggalDiterima)}<td className="max-w-xs truncate px-4 py-3" title={row.catatanPelaporan || ""}>{row.catatanPelaporan || "-"}</td><td className="px-4 py-3">{badge("", !row.active)}</td>
   </>;
 }
 
@@ -525,7 +531,7 @@ function renderFormFields(tab, draft, setDraft, data) {
     const selectOptions = field.key === "tarifId"
       ? data.tarifs.map((tarif) => ({ value: tarif.id, label: `${tarif.areaDistribusi} → ${tarif.tujuanKirim} · ${formatRupiah(tarif.total)}${tarif.active ? "" : " (nonaktif)"}` }))
       : field.key === "orderId"
-        ? data.deliveryOrders.map((order) => ({ value: order.id, label: `${order.noDo} · ${order.schedule?.noSchedule || "-"} · ${order.tujuanKirim || "-"}` }))
+        ? data.deliveryOrders.map((order) => ({ value: order.id, label: `${order.schedule?.noSchedule || "-"} · ${order.tujuanKirim || "-"}` }))
         : (field.options || []).map((option) => ({ value: option, label: option }));
     const availableOptions = field.key === "tarifId"
       ? selectOptions.filter((option) => {
@@ -590,7 +596,7 @@ function InvoiceItemsEditor({ draft, setDraft, orders }) {
     <div className="space-y-3 p-3">
       {items.map((item, index) => <div key={item.id || `item-${index}`} className="grid gap-2 rounded-xl bg-slate-50 p-3 md:grid-cols-2 xl:grid-cols-4">
         {[
-          ["noDO", "No. DO"], ["noDocPerusahaan", "No. surat jalan"], ["tglDocPerusahaan", "Tanggal surat jalan", "date"],
+          ["noDocPerusahaan", "No. surat jalan"], ["tglDocPerusahaan", "Tanggal surat jalan", "date"],
           ["areaDistribusi", "Asal"], ["tujuanKirim", "Tujuan"], ["tanggalKirim", "Tanggal kirim", "date"],
           ["namaToko", "Toko"], ["namaSupir", "Supir"], ["noPolisiKendaraan", "No. polisi"],
           ["namaBarang", "Nama barang", "textarea"], ["biayaEkspedisi", "Tarif bruto", "number"], ["pph2", "PPh 2%", "number"],
@@ -628,7 +634,7 @@ function InvoiceItemsEditor({ draft, setDraft, orders }) {
             }));
           }} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-800 outline-none focus:border-blue-400">
             <option value="">Tanpa tautan DO</option>
-            {orders.map((order) => <option key={order.id} value={order.id}>{order.noDo} · {order.schedule?.noSchedule || "-"} · {order.tujuanKirim || "-"}</option>)}
+            {orders.map((order) => <option key={order.id} value={order.id}>{order.schedule?.noSchedule || "-"} · {order.tujuanKirim || "-"}</option>)}
           </select>
         </label>
         <label className="text-[11px] font-bold text-slate-500 md:col-span-2 xl:col-span-3">Nama barang / keterangan

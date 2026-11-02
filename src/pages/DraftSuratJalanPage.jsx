@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
 import { Modal } from "../components/ui/Modal";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import { formatRupiah, formatTanggal } from "../utils/format";
 import {
   FileText,
@@ -56,7 +58,7 @@ export default function DraftSuratJalanPage() {
     if (!searchQuery.trim()) return draftOrders;
     const q = searchQuery.toLowerCase();
     return draftOrders.filter((o) => {
-      const matchNo = (o.noDO || "").toLowerCase().includes(q);
+      const matchNo = (o.noSchedule || "").toLowerCase().includes(q);
       const matchToko = (o.namaToko || o.namaPenerima || "").toLowerCase().includes(q);
       const matchRute = (o.tujuanKirim || "").toLowerCase().includes(q);
       const matchDoc = (o.noDocPerusahaan || "").toLowerCase().includes(q);
@@ -65,6 +67,7 @@ export default function DraftSuratJalanPage() {
       return matchNo || matchToko || matchRute || matchDoc || matchSupir || matchPolisi;
     });
   }, [draftOrders, searchQuery]);
+  const pagination = usePagination(filteredOrders, searchQuery);
 
   // Metrics
   const totalBersih = useMemo(
@@ -207,13 +210,13 @@ export default function DraftSuratJalanPage() {
 
   const handleDeleteDraft = async (order) => {
     if (!order) return;
-    const ok = window.confirm(`Hapus draft pengiriman ${order.noDO}? Tindakan ini tidak bisa dibatalkan.`);
+    const ok = window.confirm(`Hapus draft pengiriman ${order.noSchedule || "ini"}? Tindakan ini tidak bisa dibatalkan.`);
     if (!ok) return;
 
     try {
       await remove(order.id);
       await refresh();
-      alert(`Draft pengiriman ${order.noDO} berhasil dihapus.`);
+      alert(`Draft pengiriman ${order.noSchedule || "Draft"} berhasil dihapus.`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menghapus draft pengiriman");
     }
@@ -369,6 +372,7 @@ export default function DraftSuratJalanPage() {
             </button>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
@@ -385,7 +389,7 @@ export default function DraftSuratJalanPage() {
                       className="rounded border-slate-300 text-blue-600 focus:ring-0"
                     />
                   </th>
-                  <th className="px-3 py-3">No. DO & Jadwal</th>
+                  <th className="px-3 py-3">No. Schedule</th>
                   <th className="px-3 py-3">Toko / Depo Tujuan</th>
                   <th className="px-3 py-3">Rute Karawang & Tarif</th>
                   <th className="px-3 py-3">Armada & Supir</th>
@@ -394,7 +398,7 @@ export default function DraftSuratJalanPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredOrders.map((order) => {
+                {pagination.items.map((order) => {
                   const isChecked = selectedIds.includes(order.id);
                   const hasDoc = order.noDocPerusahaan?.trim() && order.tglDocPerusahaan;
 
@@ -417,15 +421,10 @@ export default function DraftSuratJalanPage() {
                       </td>
 
                       <td className="px-3 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {order.noDO}
+                        {order.noSchedule || "-"}
                         <p className="text-[10px] font-normal text-slate-400 font-sans mt-0.5">
                           {formatTanggal(order.createdAt)}
                         </p>
-                        {order.noSchedule && (
-                          <span className="text-[10px] text-blue-700 block font-normal">
-                            Sch: {order.noSchedule}
-                          </span>
-                        )}
                       </td>
 
                       <td className="px-3 py-3">
@@ -521,6 +520,8 @@ export default function DraftSuratJalanPage() {
               </tbody>
             </table>
           </div>
+          <Pagination {...pagination} onPageChange={pagination.setPage} />
+          </>
         )}
       </div>
 
@@ -537,9 +538,9 @@ export default function DraftSuratJalanPage() {
           <div className="space-y-4 text-xs">
             <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-1">
               <p>
-                <strong className="text-amber-950">No. DO Ekspedisi:</strong>{" "}
+                <strong className="text-amber-950">No. Schedule:</strong>{" "}
                 <span className="font-mono font-bold text-blue-900">
-                  {attachModal.order?.noDO}
+                  {attachModal.order?.noSchedule || "-"}
                 </span>
               </p>
               <p>

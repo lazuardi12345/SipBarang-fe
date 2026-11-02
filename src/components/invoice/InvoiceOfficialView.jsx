@@ -4,11 +4,17 @@ import { formatRupiah, formatTanggal } from "../../utils/format";
 import { Printer, X, FileText } from "lucide-react";
 
 function getDocumentNumbers(item) {
-  const numbers = String(item.noDocPerusahaan || item.noDO || "")
+  const numbers = String(item.noDocPerusahaan || item.noSchedule || "")
     .split(/[,;\n]+/)
     .map((number) => number.trim())
     .filter(Boolean);
   return numbers.length > 0 ? numbers : ["-"];
+}
+
+function getInvoiceItemAmounts(item) {
+  const tarif = Number(item.biayaEkspedisi ?? item.tarifPengiriman ?? 0);
+  const pph2 = Math.round(tarif * 0.02);
+  return { tarif, pph2, total: tarif - pph2 };
 }
 
 export function InvoiceOfficialView({ invoice, onClose }) {
@@ -72,7 +78,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
     printStyles.textContent = `
       @page {
         size: 210mm 330mm;
-        margin: 0;
+        margin: 8mm 0;
       }
 
       html, body {
@@ -108,7 +114,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
       #invoice-print-area.invoice-official-page.invoice-document .invoice-sheet {
         width: 210mm !important;
         height: auto !important;
-        min-height: 330mm !important;
+        min-height: 314mm !important;
         max-height: none !important;
         box-sizing: border-box !important;
         margin: 0 !important;
@@ -257,23 +263,10 @@ export function InvoiceOfficialView({ invoice, onClose }) {
   );
 
   // Total tarif ekspedisi
-  const totalBruto =
-    Number(invoice.subtotal) ||
-    itemsList.reduce((sum, it) => sum + Number(it.biayaEkspedisi || it.tarifPengiriman || 0), 0);
-  const totalPPh2 = Number(
-    invoice.totalPPh2 ??
-      invoice.totalPPh ??
-      itemsList.reduce(
-        (sum, it) =>
-          sum + Number(it.pph2 ?? Math.round(Number(it.biayaEkspedisi || 0) * 0.02)),
-        0
-      )
-  );
-  const totalTagihan = Number(
-    invoice.totalTagihan ??
-      invoice.totalBersih ??
-      (totalBruto - totalPPh2)
-  );
+  const invoiceAmounts = itemsList.map(getInvoiceItemAmounts);
+  const totalBruto = invoiceAmounts.reduce((sum, item) => sum + item.tarif, 0);
+  const totalPPh2 = invoiceAmounts.reduce((sum, item) => sum + item.pph2, 0);
+  const totalTagihan = invoiceAmounts.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <div className="space-y-4">
@@ -516,10 +509,6 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   <strong>PT ALMAIRA YUNIAR TREK</strong>
                 </p>
               </div>
-              <p className="text-slate-500 italic" style={{ fontSize: "7.5pt" }}>
-                * Cantumkan No. Faktur pada berita transfer dan kirim bukti ke{" "}
-                <strong>almirayuniartrek@gmail.com</strong>
-              </p>
             </div>
 
             {/* Tanda Tangan Direktur */}
@@ -539,12 +528,10 @@ export function InvoiceOfficialView({ invoice, onClose }) {
 
                 <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
                   <p className="font-black text-slate-900 underline underline-offset-2 uppercase tracking-wider" style={{ fontSize: "9.5pt" }}>
-                    {invoice.dibuatOleh?.role === "DIREKTUR"
-                      ? invoice.dibuatOleh.nama || "DIREKTUR UTAMA"
-                      : "BELUM DISAHKAN"}
+                    M Syahril
                   </p>
                   <p className="text-slate-500" style={{ fontSize: "7.5pt" }}>
-                    {invoice.dibuatOleh?.role === "DIREKTUR" ? "Direktur Utama" : "PT Almaira Yuniar Trek"}
+                    Direktur Utama
                   </p>
                 </div>
               </div>
@@ -578,44 +565,42 @@ export function InvoiceOfficialView({ invoice, onClose }) {
 
             <table className="invoice-recap-table w-full border-collapse text-left">
               <colgroup>
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "16%" }} />
                 <col style={{ width: "5%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "17%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "7%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "11%" }} />
                 <col style={{ width: "15%" }} />
                 <col style={{ width: "14%" }} />
-                <col style={{ width: "14%" }} />
+                <col style={{ width: "15%" }} />
               </colgroup>
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th>No. Schedule</th>
-                  <th>No. Surat Jalan</th>
-                  <th>Tanggal</th>
-                  <th>Rit</th>
-                  <th>Tujuan</th>
-                  <th>Tarif Bruto</th>
-                  <th>Netto (PPh 2%)</th>
+                  <th>NO. SCHEDULE</th>
+                  <th>NO. DOC</th>
+                  <th>RIT</th>
+                  <th>TANGGAL</th>
+                  <th>AREA</th>
+                  <th>TARIF</th>
+                  <th>PPH 2%</th>
+                  <th>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
                 {recapItems.length > 0 ? recapItems.map(({ item, documentNumber, documentIndex, documentCount }, index) => {
-                  const tarif = Number(item.biayaEkspedisi ?? item.tarifPengiriman ?? 0);
-                  const pph2 = Number(item.pph2 ?? Math.round(tarif * 0.02));
-                  const netto = Number(item.totalSetelahPPh ?? item.totalSetelahPph ?? tarif - pph2);
+                  const { tarif, pph2, total } = getInvoiceItemAmounts(item);
                   return (
                     <tr key={`${item.deliveryOrderId || item.id || index}-${documentIndex}`}>
-                      <td className="text-center">{index + 1}</td>
                       {documentIndex === 0 && (
                         <>
                           <td rowSpan={documentCount}>{item.noSchedule || "-"}</td>
                           <td>{documentNumber === "-" ? "-" : documentNumber}</td>
-                          <td rowSpan={documentCount} className="text-center">{formatTanggal(item.tanggalKirim || item.tglDocPerusahaan)}</td>
                           <td rowSpan={documentCount} className="text-center">{String(item.tipeMobilRit || "1").match(/\d+/)?.[0] || "1"}</td>
+                          <td rowSpan={documentCount} className="text-center">{formatTanggal(item.tanggalKirim || item.tglDocPerusahaan)}</td>
                           <td rowSpan={documentCount}>{getDestination(item.tujuanKirim || item.areaDistribusi)}</td>
                           <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(tarif)}</td>
-                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(netto)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">- {formatRupiah(pph2)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap font-semibold">{formatRupiah(total)}</td>
                         </>
                       )}
                       {documentIndex > 0 && <td>{documentNumber}</td>}
@@ -629,29 +614,29 @@ export function InvoiceOfficialView({ invoice, onClose }) {
               </tbody>
             </table>
 
-            <div className="page-break-avoid mt-8 flex justify-end">
-              <div
-                className="flex flex-col justify-between rounded-lg border border-slate-300 bg-white text-center"
-                style={{ width: "170px", minHeight: "150px", padding: "10px 10px 8px" }}
-              >
-                <div>
-                  <p className="font-bold text-slate-500 uppercase tracking-wider" style={{ fontSize: "8pt" }}>
-                    Hormat Kami,
-                  </p>
-                  <p className="font-bold text-slate-900" style={{ fontSize: "9pt" }}>
-                    PT ALMAIRA YUNIAR TREK
-                  </p>
-                </div>
+            <div className="page-break-avoid mt-8" style={{ display: "flow-root" }}>
+              <div className="flex justify-end">
+                <div
+                  className="flex flex-col justify-between rounded-lg border border-slate-300 bg-white text-center"
+                  style={{ width: "170px", minHeight: "150px", padding: "10px 10px 8px" }}
+                >
+                  <div>
+                    <p className="font-bold text-slate-500 uppercase tracking-wider" style={{ fontSize: "8pt" }}>
+                      Hormat Kami,
+                    </p>
+                    <p className="font-bold text-slate-900" style={{ fontSize: "9pt" }}>
+                      PT ALMAIRA YUNIAR TREK
+                    </p>
+                  </div>
 
-                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
-                  <p className="font-black text-slate-900 underline underline-offset-2 uppercase tracking-wider" style={{ fontSize: "9.5pt" }}>
-                    {invoice.dibuatOleh?.role === "DIREKTUR"
-                      ? invoice.dibuatOleh.nama || "DIREKTUR UTAMA"
-                      : "BELUM DISAHKAN"}
-                  </p>
-                  <p className="text-slate-500" style={{ fontSize: "7.5pt" }}>
-                    {invoice.dibuatOleh?.role === "DIREKTUR" ? "Direktur Utama" : "PT Almaira Yuniar Trek"}
-                  </p>
+                  <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "8px", marginTop: "8px" }}>
+                    <p className="font-black text-slate-900 underline underline-offset-2 uppercase tracking-wider" style={{ fontSize: "9.5pt" }}>
+                      M Syahril
+                    </p>
+                    <p className="text-slate-500" style={{ fontSize: "7.5pt" }}>
+                      Direktur Utama
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

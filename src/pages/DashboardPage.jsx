@@ -336,7 +336,7 @@ export default function DashboardPage() {
                 className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/60 p-3 hover:bg-slate-100/70 transition"
               >
                 <div>
-                  <p className="font-mono text-xs font-bold text-slate-900">{order.noDO}</p>
+                  <p className="font-mono text-xs font-bold text-slate-900">{order.noSchedule || "-"}</p>
                   <p className="text-xs text-slate-700">
                     {order.namaToko || order.namaPenerima} — {order.tujuanKirim}
                   </p>

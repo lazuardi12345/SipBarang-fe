@@ -57,7 +57,7 @@ export function InvoicePrintView({ invoice }) {
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
           <tr className="border-b-2 border-slate-800 text-left text-xs uppercase text-slate-500">
-            <th className="py-2 pr-2">No. DO</th>
+            <th className="py-2 pr-2">No. Schedule</th>
             <th className="py-2 pr-2">Tujuan Kirim</th>
             <th className="py-2 pr-2">Tanggal</th>
             <th className="py-2 pr-2 text-right">Tarif Bruto</th>
@@ -68,7 +68,7 @@ export function InvoicePrintView({ invoice }) {
         <tbody>
           {invoice.items.map((item) => (
             <tr key={item.deliveryOrderId} className="border-b border-slate-100">
-              <td className="py-2 pr-2">{item.noDO}</td>
+              <td className="py-2 pr-2">{item.noSchedule || "-"}</td>
               <td className="py-2 pr-2">{item.tujuanKirim}</td>
               <td className="py-2 pr-2">{formatTanggal(item.tanggalKirim)}</td>
               <td className="py-2 pr-2 text-right">

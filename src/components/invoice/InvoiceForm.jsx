@@ -111,7 +111,7 @@ export function InvoiceForm({ deliveredOrders = [], onSubmit, onClose }) {
                     onChange={() => toggle(o.id)}
                   />
                   <span className="min-w-0">
-                    <span className="font-mono font-bold text-slate-900">{o.noDO}</span>{" "}
+                    <span className="font-mono font-bold text-slate-900">{o.noSchedule || "-"}</span>{" "}
                     <span className="text-slate-500">
                       · {o.namaToko || o.namaPenerima || o.tujuanKirim} · {formatTanggal(o.tanggalKirim)}
                     </span>

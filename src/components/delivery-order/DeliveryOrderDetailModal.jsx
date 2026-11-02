@@ -26,7 +26,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
 
   return (
     <Modal
-      title={`Surat Jalan: ${order.noDO}`}
+      title={`Surat Jalan: ${order.noSchedule || "-"}`}
       onClose={onClose}
       maxWidth="max-w-4xl"
     >
@@ -66,19 +66,15 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
             subtitle="PT ALMAIRA YUNIAR TREK - Divisi Angkutan & Ekspedisi Darat"
           />
 
-          {/* Header Status & No. DO */}
+          {/* Header Status & No. Schedule */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-xs">
             <div>
-              <p className="text-slate-500 text-[10px] font-bold uppercase">No. Surat Jalan</p>
-              <p className="font-mono font-black text-slate-900 text-sm mt-0.5">{order.noDO}</p>
+              <p className="text-slate-500 text-[10px] font-bold uppercase">No. Schedule</p>
+              <p className="font-mono font-black text-slate-900 text-sm mt-0.5">{order.noSchedule || "-"}</p>
             </div>
             <div>
               <p className="text-slate-500 text-[10px] font-bold uppercase">Tgl. Diterbitkan</p>
               <p className="font-semibold text-slate-800 mt-0.5">{formatTanggalWaktu(order.createdAt)}</p>
-            </div>
-            <div>
-              <p className="text-slate-500 text-[10px] font-bold uppercase">No. Schedule Pabrik</p>
-              <p className="font-mono font-semibold text-slate-900 mt-0.5">{order.noSchedule || "-"}</p>
             </div>
             <div>
               <p className="text-slate-500 text-[10px] font-bold uppercase">No. Polisi Armada</p>
@@ -201,7 +197,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
               </div>
               <ImagePreview
                 src={order.buktiPengirimanUrl}
-                alt={`Bukti foto penerimaan barang ${order.noDO}`}
+                alt={`Bukti foto penerimaan barang ${order.noSchedule || "surat jalan"}`}
                 thumbnailClassName="max-h-96 max-w-full rounded-lg border border-slate-200 object-contain"
               />
             </div>

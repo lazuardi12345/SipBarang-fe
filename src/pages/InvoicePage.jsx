@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { useInvoices } from "../hooks/useInvoices";
 import { Modal } from "../components/ui/Modal";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../utils/format";
 import {
   FileText,
@@ -76,7 +78,7 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
     if (!searchFilter.trim()) return true;
     const q = searchFilter.toLowerCase();
     return (
-      o.noDO?.toLowerCase().includes(q) ||
+      o.noSchedule?.toLowerCase().includes(q) ||
       (o.namaToko || o.namaPenerima || "").toLowerCase().includes(q) ||
       o.tujuanKirim?.toLowerCase().includes(q) ||
       o.namaSupir?.toLowerCase().includes(q) ||
@@ -251,7 +253,7 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Filter No. DO, Toko, Supir..."
+              placeholder="Filter No. Schedule, Toko, Supir..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
@@ -291,7 +293,7 @@ function CreateInvoiceModal({ deliveredOrders, onSubmit, onClose }) {
                     />
                     <div className="space-y-0.5 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-slate-900">{o.noDO}</span>
+                        <span className="font-mono font-bold text-slate-900">{o.noSchedule || "-"}</span>
                         {o.noDocPerusahaan && (
                           <span className="rounded bg-slate-100 px-1.5 py-0.2 font-mono text-[10px] text-slate-600">
                             SJ Pabrik: {o.noDocPerusahaan}
@@ -384,6 +386,7 @@ export default function InvoicePage() {
       inv.alamatPelanggan?.toLowerCase().includes(term);
     return matchStatus && matchSearch;
   });
+  const pagination = usePagination(filteredInvoices, `${searchTerm}|${statusFilter}`);
 
   const totalTagihanAll = invoices
     .filter((i) => i.status !== "DIBATALKAN")
@@ -530,7 +533,7 @@ export default function InvoicePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredInvoices.map((invoice) => {
+                {pagination.items.map((invoice) => {
                   const itemsCount =
                     (invoice.items && invoice.items.length) ||
                     (invoice.deliveryOrders && invoice.deliveryOrders.length) ||
@@ -604,6 +607,9 @@ export default function InvoicePage() {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && filteredInvoices.length > 0 && (
+          <Pagination {...pagination} onPageChange={pagination.setPage} />
         )}
       </div>
 

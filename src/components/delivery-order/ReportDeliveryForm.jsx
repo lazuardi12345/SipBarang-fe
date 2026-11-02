@@ -85,7 +85,7 @@ export function ReportDeliveryForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <Alert type="error">{error}</Alert>}
       <p className="text-sm text-slate-600">
-        Melaporkan pengiriman <b>{order.noDO}</b> ke {order.tujuanKirim}
+        Melaporkan pengiriman <b>{order.noSchedule || "-"}</b> ke {order.tujuanKirim}
       </p>
       <Input
         label="Nama Penerima yang Menerima Barang"

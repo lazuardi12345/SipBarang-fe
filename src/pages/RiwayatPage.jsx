@@ -5,6 +5,8 @@ import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { DeliveryOrderDetailModal } from "../components/delivery-order/DeliveryOrderDetailModal";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { ImagePreview } from "../components/ui/ImagePreview";
+import { Pagination } from "../components/ui/Pagination";
+import { usePagination } from "../hooks/usePagination";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../utils/format";
 import { History, Search, Eye, RefreshCw } from "lucide-react";
 
@@ -29,7 +31,7 @@ export default function RiwayatPage() {
     const term = search.toLowerCase();
     const matchSearch =
       !term ||
-      o.noDO?.toLowerCase().includes(term) ||
+      o.noSchedule?.toLowerCase().includes(term) ||
       o.namaToko?.toLowerCase().includes(term) ||
       o.tujuanKirim?.toLowerCase().includes(term) ||
       o.namaSupir?.toLowerCase().includes(term) ||
@@ -37,6 +39,7 @@ export default function RiwayatPage() {
       o.noPolisiKendaraan?.toLowerCase().includes(term);
     return matchStatus && matchSearch;
   });
+  const pagination = usePagination(filtered, `${search}|${filterStatus}`);
 
   return (
     <div className="space-y-6">
@@ -75,7 +78,7 @@ export default function RiwayatPage() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Cari No. DO, nama toko, tujuan, supir, atau no. polisi..."
+            placeholder="Cari No. Schedule, nama toko, tujuan, supir, atau no. polisi..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-300 pl-9 pr-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -110,7 +113,7 @@ export default function RiwayatPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase sticky top-0">
                 <tr>
-                  <th className="px-4 py-3">No. DO Ekspedisi</th>
+                  <th className="px-4 py-3">No. Schedule</th>
                   <th className="px-4 py-3">Doc Pabrik / Toko</th>
                   <th className="px-4 py-3">Rute Tujuan</th>
                   <th className="px-4 py-3">Supir & Armada</th>
@@ -121,10 +124,10 @@ export default function RiwayatPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.map((order) => (
+                {pagination.items.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/60 transition">
                     <td className="px-4 py-3">
-                      <p className="font-mono font-bold text-slate-900">{order.noDO}</p>
+                      <p className="font-mono font-bold text-slate-900">{order.noSchedule || "-"}</p>
                       <p className="text-[11px] text-slate-400 mt-0.5">{formatTanggalWaktu(order.createdAt)}</p>
                     </td>
                     <td className="px-4 py-3">
@@ -146,7 +149,7 @@ export default function RiwayatPage() {
                       {order.buktiPengirimanUrl ? (
                         <ImagePreview
                           src={order.buktiPengirimanUrl}
-                          alt={`Bukti pengiriman ${order.noDO}`}
+                          alt={`Bukti pengiriman ${order.noSchedule || "surat jalan"}`}
                           onClick={(event) => event.stopPropagation()}
                           thumbnailClassName="h-10 w-10 rounded-md border border-slate-200 object-cover"
                         />
@@ -171,9 +174,7 @@ export default function RiwayatPage() {
                 ))}
               </tbody>
             </table>
-            <div className="border-t bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
-              Menampilkan <strong>{filtered.length}</strong> dari <strong>{orders.length}</strong> total surat jalan
-            </div>
+            <Pagination {...pagination} onPageChange={pagination.setPage} />
           </div>
         )}
       </div>

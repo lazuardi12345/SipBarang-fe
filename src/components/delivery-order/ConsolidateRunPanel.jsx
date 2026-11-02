@@ -43,11 +43,11 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
 
       if (searchFilter.trim()) {
         const q = searchFilter.toLowerCase();
-        const mDO = (o.noDO || "").toLowerCase().includes(q);
+        const mSchedule = (o.noSchedule || "").toLowerCase().includes(q);
         const mToko = (o.namaToko || o.namaPenerima || "").toLowerCase().includes(q);
         const mRute = (o.tujuanKirim || "").toLowerCase().includes(q);
         const mDoc = (o.noDocPerusahaan || "").toLowerCase().includes(q);
-        return mDO || mToko || mRute || mDoc;
+        return mSchedule || mToko || mRute || mDoc;
       }
       return true;
     });
@@ -113,7 +113,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
     for (const order of selectedOrders) {
       const document = documentsByOrder[order.id] || order;
       if (!document.noDocPerusahaan?.trim() || !document.tglDocPerusahaan) {
-        setActionError(`No. Doc dan tanggal surat jalan perusahaan wajib diisi untuk ${order.namaToko || order.noDO}.`);
+        setActionError(`No. Doc dan tanggal surat jalan perusahaan wajib diisi untuk ${order.namaToko || order.noSchedule || "pengiriman ini"}.`);
         return;
       }
       orderDocumentData[order.id] = {
@@ -327,7 +327,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleSelect(order.id)}
-                        aria-label={`Pilih ${order.namaToko || order.noDO}`}
+                        aria-label={`Pilih ${order.namaToko || order.noSchedule || "pengiriman"}`}
                         className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-0 shrink-0"
                       />
 
@@ -335,7 +335,7 @@ export function ConsolidateRunPanel({ orders, onConsolidate, loading, onGoToAppr
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-bold text-slate-900 text-xs">
-                              {order.noDO}
+                              {order.noSchedule || "-"}
                             </span>
                             <span className="text-[10px] text-slate-400">
                               {formatTanggal(order.createdAt)}
