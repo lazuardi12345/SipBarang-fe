@@ -5,6 +5,7 @@ import {
   COMPANY_EMAIL,
 } from "../../utils/constants";
 import { formatRupiah, formatTanggal } from "../../utils/format";
+import { terbilang } from "../../utils/terbilang";
 
 export function InvoicePrintView({ invoice }) {
   const totalBruto = Number(invoice.subtotal || 0);
@@ -102,6 +103,9 @@ export function InvoicePrintView({ invoice }) {
             <span>Total Tagihan</span>
             <span>{formatRupiah(totalTagihan)}</span>
           </div>
+          <p className="pt-1 text-xs italic text-slate-600">
+            Terbilang: {terbilang(totalTagihan)}
+          </p>
         </div>
       </div>
 

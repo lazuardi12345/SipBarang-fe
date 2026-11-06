@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { CompanyKopSurat } from "../common/CompanyKopSurat";
 import { formatRupiah, formatTanggal } from "../../utils/format";
+import { terbilang } from "../../utils/terbilang";
 import { Printer, X, FileText } from "lucide-react";
 
 function getDocumentNumbers(item) {
@@ -504,6 +505,11 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   <td className="border border-slate-300 px-2 py-1 text-right font-mono font-bold">
                     {formatRupiah(totalTagihan)}
                   </td>
+                </tr>
+                <tr>
+                  <th colSpan={2} className="border border-slate-300 px-2 py-1 text-left font-medium italic">
+                    Terbilang: {terbilang(totalTagihan)}
+                  </th>
                 </tr>
               </tbody>
             </table>
