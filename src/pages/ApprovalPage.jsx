@@ -126,7 +126,7 @@ export default function ApprovalPage() {
             Approval Direktur
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Dua tahap persetujuan: 1. ACC Surat Jalan untuk Berangkat · 2. ACC Konfirmasi Laporan Selesai Terkirim.
+            Dua tahap persetujuan Direktur: 1. ACC Pengajuan Jadwal SO & Uang Jalan Supir · 2. ACC Konfirmasi Selesai Terkirim.
           </p>
         </div>
 
@@ -141,7 +141,7 @@ export default function ApprovalPage() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>1. ACC Berangkat</span>
+            <span>1. ACC Pengajuan SO</span>
             <span className="rounded-full bg-white/25 px-1.5 py-0.2 text-[11px]">
               {pendingBerangkat.length}
             </span>
@@ -213,7 +213,7 @@ export default function ApprovalPage() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="border-b pb-3 mb-4">
           <h2 className="text-base font-semibold text-slate-900">
-            {activeTab === "MENUNGGU_ACC" && "Daftar Pengiriman Menunggu ACC Surat Jalan (Gate 1)"}
+            {activeTab === "MENUNGGU_ACC" && "Daftar Pengajuan SO Menunggu ACC Direktur (Gate 1)"}
             {activeTab === "MENUNGGU_KONFIRMASI" && "Daftar Laporan Terkirim Menunggu Konfirmasi Direktur (Gate 2)"}
             {activeTab === "DISETUJUI" && "Pengiriman yang Telah Disetujui & Sedang Berjalan"}
             {activeTab === "TERKIRIM" && "Pengiriman yang Sudah Selesai & Dikonfirmasi (Siap Buat Invoice)"}
@@ -221,7 +221,7 @@ export default function ApprovalPage() {
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {activeTab === "MENUNGGU_ACC" &&
-              "Periksa nomor surat jalan dari pabrik dan armada sebelum memberikan persetujuan berangkat."}
+              "Periksa jadwal SO, tujuan, armada kendaraan, dan alokasi uang jalan supir. Nama supir dan No. Surat Jalan Pabrik akan diinput admin setelah SO di-ACC."}
             {activeTab === "MENUNGGU_KONFIRMASI" &&
               "Admin/Supir telah melaporkan barang sampai di toko tujuan. Konfirmasi untuk menandai pengiriman selesai."}
             {activeTab === "DISETUJUI" &&
@@ -272,32 +272,52 @@ export default function ApprovalPage() {
                       {order.namaToko || order.namaPenerima || "-"}
                     </p>
                     <p className="text-slate-500 font-mono mt-0.5">
-                      Doc Pabrik: <strong>{order.noDocPerusahaan || "(Belum ada)"}</strong>
+                      Doc Pabrik:{" "}
+                      {order.noDocPerusahaan ? (
+                        <strong className="text-slate-800">{order.noDocPerusahaan}</strong>
+                      ) : (
+                        <span className="text-amber-600 font-medium italic">(Diisi admin setelah ACC SO)</span>
+                      )}
                     </p>
                     <p className="text-slate-500 mt-0.5 truncate">{order.alamatLengkapTujuan || "-"}</p>
                   </div>
 
                   <div>
-                    <span className="text-slate-500">Rute Tujuan & Tarif:</span>
+                    <span className="text-slate-500">Rute Tujuan & Biaya:</span>
                     <p className="font-semibold text-blue-950 mt-0.5">
                       [{order.areaDistribusi}] {order.tujuanKirim}
                     </p>
                     <p className="text-slate-500 mt-0.5">
                       Ekspedisi: {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
                     </p>
-                    <p className="mt-0.5 font-semibold text-amber-700">
-                      Uang Jalan Supir: {order.uangJalanSupir == null ? "Belum diisi" : formatRupiah(order.uangJalanSupir)}
-                    </p>
+                    <div className="mt-1 rounded-md bg-amber-50 border border-amber-200/80 px-2 py-1 text-[11px] font-semibold text-amber-900 flex items-center justify-between">
+                      <span>Uang Jalan Supir:</span>
+                      <span className="font-extrabold text-amber-700">
+                        {order.uangJalanSupir == null ? "Belum diisi" : formatRupiah(order.uangJalanSupir)}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
-                    <span className="text-slate-500">Supir & Armada:</span>
-                    <p className="font-medium text-slate-800 mt-0.5">
-                      {order.namaSupir} {order.noHpSupir ? `(${order.noHpSupir})` : ""}
+                    <span className="text-slate-500">Armada & Supir:</span>
+                    <p className="text-slate-900 font-mono font-bold mt-0.5">
+                      {order.noPolisiKendaraan || "-"} <span className="text-slate-500 font-normal">({order.tipeMobilRit || "Mobil Rit"})</span>
                     </p>
-                    <p className="text-slate-500 font-mono uppercase mt-0.5">
-                      {order.noPolisiKendaraan} - {order.tipeMobilRit || "8 Ton"}
+                    <p className="text-slate-600 mt-0.5">
+                      {order.namaSupir ? (
+                        <>
+                          <span className="font-semibold text-slate-800">{order.namaSupir}</span>
+                          {order.noHpSupir && <span className="text-slate-500 ml-1">({order.noHpSupir})</span>}
+                        </>
+                      ) : (
+                        <span className="text-amber-600 italic">(Supir ditentukan setelah ACC SO)</span>
+                      )}
                     </p>
+                    {order.muatanTonase && (
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Muatan: <strong>{order.muatanTonase} Ton</strong>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -374,7 +394,7 @@ export default function ApprovalPage() {
                       className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition"
                     >
                       <CheckCircle size={15} />
-                      ACC Berangkat (Setujui)
+                      ACC SO (Setujui)
                     </button>
                   </div>
                 )}
@@ -412,7 +432,7 @@ export default function ApprovalPage() {
         <Modal
           title={
             approvalModal.type === "approve"
-              ? "ACC Persetujuan Berangkat (Gate 1)"
+              ? "ACC Persetujuan SO & Uang Jalan (Gate 1)"
               : approvalModal.type === "confirm_delivered"
               ? "ACC Konfirmasi Terkirim (Gate 2)"
               : approvalModal.type === "revise"
@@ -471,7 +491,7 @@ export default function ApprovalPage() {
                 rows={3}
                 placeholder={
                   approvalModal.type === "approve"
-                    ? "Instruksi khusus untuk supir sebelum jalan (opsional)..."
+                    ? "Catatan atau instruksi persetujuan SO (opsional)..."
                     : approvalModal.type === "confirm_delivered"
                     ? "Catatan konfirmasi selesai / verifikasi dokumen..."
                     : approvalModal.type === "revise"
@@ -512,7 +532,7 @@ export default function ApprovalPage() {
                 {processing
                   ? "Memproses..."
                   : approvalModal.type === "approve"
-                  ? "Konfirmasi ACC Berangkat"
+                  ? "Konfirmasi ACC SO"
                   : approvalModal.type === "confirm_delivered"
                   ? "Konfirmasi Terkirim Selesai"
                   : approvalModal.type === "revise"

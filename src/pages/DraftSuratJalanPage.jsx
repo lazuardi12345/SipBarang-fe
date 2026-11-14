@@ -11,19 +11,18 @@ import { formatRupiah, formatTanggal } from "../utils/format";
 import {
   FileText,
   AlertTriangle,
-  PlusCircle,
   Truck,
   Send,
   Eye,
   RefreshCw,
-  Layers,
   CheckCircle2,
-  CheckSquare,
-  Square,
   Building2,
   Calendar,
   Search,
-  Trash2
+  Trash2,
+  User,
+  ShieldCheck,
+  TrendingUp
 } from "lucide-react";
 
 export default function DraftSuratJalanPage() {
@@ -33,31 +32,39 @@ export default function DraftSuratJalanPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [selectedIds, setSelectedIds] = useState([]);
 
-  // Modal input/update Surat Jalan Pabrik
+  // Modal input/update Surat Jalan Pabrik & Supir
   const [attachModal, setAttachModal] = useState({
     open: false,
     order: null,
     noDocPerusahaan: "",
     tglDocPerusahaan: "",
+    namaSupir: "",
+    noHpSupir: "",
     keteranganDoc: "",
-    submitDirectly: false,
     processing: false,
     error: null,
   });
 
-  // Filter orders that don't have Surat Jalan yet OR are in DRAFT / PLANNING
-  const draftOrders = useMemo(() => {
-    return orders.filter(
-      (o) => o.status === "DRAFT" || o.status === "PLANNING"
-    );
+  // Filter orders yang perlu Surat Jalan Pabrik dan Supir:
+  // 1. SO yang sudah di-ACC Direktur (DISETUJUI) tapi belum ada surat jalan pabrik atau belum ada supir
+  // 2. Draft / Planning yang masih belum diajukan
+  const pendingOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (o.status === "DISETUJUI" && (!o.noDocPerusahaan?.trim() || !o.namaSupir?.trim())) {
+        return true;
+      }
+      if (o.status === "DRAFT" || o.status === "PLANNING") {
+        return true;
+      }
+      return false;
+    });
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
-    if (!searchQuery.trim()) return draftOrders;
+    if (!searchQuery.trim()) return pendingOrders;
     const q = searchQuery.toLowerCase();
-    return draftOrders.filter((o) => {
+    return pendingOrders.filter((o) => {
       const matchNo = (o.noSchedule || "").toLowerCase().includes(q);
       const matchToko = (o.namaToko || o.namaPenerima || "").toLowerCase().includes(q);
       const matchRute = (o.tujuanKirim || "").toLowerCase().includes(q);
@@ -66,64 +73,28 @@ export default function DraftSuratJalanPage() {
       const matchPolisi = (o.noPolisiKendaraan || "").toLowerCase().includes(q);
       return matchNo || matchToko || matchRute || matchDoc || matchSupir || matchPolisi;
     });
-  }, [draftOrders, searchQuery]);
+  }, [pendingOrders, searchQuery]);
+
   const pagination = usePagination(filteredOrders, searchQuery);
 
-  // Metrics
-  const totalBersih = useMemo(
-    () => draftOrders.reduce((sum, o) => sum + (Number(o.biayaEkspedisi ?? o.totalSetelahPPh ?? 0) || 0), 0),
-    [draftOrders]
+  const totalUangJalan = useMemo(
+    () => pendingOrders.reduce((sum, o) => sum + (Number(o.uangJalanSupir || 0)), 0),
+    [pendingOrders]
   );
-  const totalToko = useMemo(() => {
-    const tokoSet = new Set(draftOrders.map((o) => o.namaToko || o.namaPenerima).filter(Boolean));
-    return tokoSet.size;
-  }, [draftOrders]);
+  const countAccReady = useMemo(
+    () => pendingOrders.filter((o) => o.status === "DISETUJUI").length,
+    [pendingOrders]
+  );
 
-  const handleToggleSelect = (id) => {
-    const order = draftOrders.find((item) => item.id === id);
-    if (!order || !canSubmitOrder(order)) return;
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const canSubmitOrder = (order) =>
-    Boolean(
-      order.noDocPerusahaan?.trim() &&
-        order.tglDocPerusahaan &&
-        order.noSchedule?.trim() &&
-        order.tglSchedule &&
-        order.tipeMobilRit?.trim() &&
-        order.namaSupir?.trim() &&
-        order.noPolisiKendaraan?.trim()
-    );
-
-  const canScheduleOrder = (order) =>
-    Boolean(
-      order.noSchedule?.trim() &&
-        order.tglSchedule &&
-        order.tipeMobilRit?.trim() &&
-        order.namaSupir?.trim() &&
-        order.noPolisiKendaraan?.trim()
-    );
-
-  const handleSelectAll = () => {
-    const readyOrders = filteredOrders.filter(canSubmitOrder);
-    if (readyOrders.length > 0 && readyOrders.every((order) => selectedIds.includes(order.id))) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(readyOrders.map((o) => o.id));
-    }
-  };
-
-  const openAttachModal = (order, submitDirectly = false) => {
+  const openAttachModal = (order) => {
     setAttachModal({
       open: true,
       order,
       noDocPerusahaan: order.noDocPerusahaan || "",
-      tglDocPerusahaan: order.tglDocPerusahaan || "",
+      tglDocPerusahaan: order.tglDocPerusahaan || new Date().toISOString().slice(0, 10),
+      namaSupir: order.namaSupir || "",
+      noHpSupir: order.noHpSupir || "",
       keteranganDoc: order.keteranganDoc || "",
-      submitDirectly,
       processing: false,
       error: null,
     });
@@ -145,30 +116,32 @@ export default function DraftSuratJalanPage() {
       }));
       return;
     }
+    if (!attachModal.namaSupir.trim()) {
+      setAttachModal((prev) => ({
+        ...prev,
+        error: "Nama supir yang bertugas wajib diisi",
+      }));
+      return;
+    }
 
     setAttachModal((prev) => ({ ...prev, processing: true, error: null }));
     try {
-      if (attachModal.submitDirectly) {
-        await submitToDirector(attachModal.order.id, {
-          noDocPerusahaan: attachModal.noDocPerusahaan.trim(),
-          tglDocPerusahaan: attachModal.tglDocPerusahaan,
-          keteranganDoc: attachModal.keteranganDoc,
-        });
-      } else {
-        await attachDocPerusahaan(attachModal.order.id, {
-          noDocPerusahaan: attachModal.noDocPerusahaan.trim(),
-          tglDocPerusahaan: attachModal.tglDocPerusahaan,
-          keteranganDoc: attachModal.keteranganDoc,
-        });
-      }
+      await attachDocPerusahaan(attachModal.order.id, {
+        noDocPerusahaan: attachModal.noDocPerusahaan.trim(),
+        tglDocPerusahaan: attachModal.tglDocPerusahaan,
+        namaSupir: attachModal.namaSupir.trim(),
+        noHpSupir: attachModal.noHpSupir.trim(),
+        keteranganDoc: attachModal.keteranganDoc,
+      });
 
       setAttachModal({
         open: false,
         order: null,
         noDocPerusahaan: "",
         tglDocPerusahaan: "",
+        namaSupir: "",
+        noHpSupir: "",
         keteranganDoc: "",
-        submitDirectly: false,
         processing: false,
         error: null,
       });
@@ -177,380 +150,346 @@ export default function DraftSuratJalanPage() {
       setAttachModal((prev) => ({
         ...prev,
         processing: false,
-        error: err instanceof Error ? err.message : "Gagal menyimpan surat jalan pabrik",
+        error: err instanceof Error ? err.message : "Gagal menyimpan surat jalan dan supir",
       }));
     }
   };
 
-  const handleBatchSubmit = async () => {
-    if (selectedIds.length === 0) return;
-    if (
-      !confirm(
-        `Ajukan ${selectedIds.length} pengiriman draft terpilih ke Direktur untuk di-ACC?`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      for (const id of selectedIds) {
-        await submitToDirector(id, {});
-      }
-      setSelectedIds([]);
-      await refresh();
-      alert("Pengiriman terpilih berhasil diajukan ke Direktur!");
-    } catch (err) {
-      alert("Sebagian pengiriman gagal diajukan: " + (err instanceof Error ? err.message : err));
-    }
-  };
-
-  const handleGoToConsolidate = () => {
-    navigate("/dashboard/pengiriman");
-  };
-
   const handleDeleteDraft = async (order) => {
-    if (!order) return;
-    const ok = window.confirm(`Hapus draft pengiriman ${order.noSchedule || "ini"}? Tindakan ini tidak bisa dibatalkan.`);
-    if (!ok) return;
-
+    if (!window.confirm(`Hapus jadwal/rencana ${order.noSchedule || order.noDO}?`)) return;
     try {
       await remove(order.id);
       await refresh();
-      alert(`Draft pengiriman ${order.noSchedule || "Draft"} berhasil dihapus.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus draft pengiriman");
+      alert(err instanceof Error ? err.message : "Gagal menghapus jadwal");
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-0.5 text-xs font-bold text-amber-800 mb-1 border border-amber-300/60">
-            <AlertTriangle size={13} />
-            <span>Rencana Pengiriman</span>
-          </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="text-amber-600" />
-            Rencana Menunggu No. Doc & Pengajuan
+            Input Surat Jalan Pabrik & Supir
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Lengkapi schedule, armada, dan No. Doc sesuai surat jalan perusahaan sebelum pengiriman diajukan.
+            Jadwal SO yang telah di-ACC oleh Direktur Utama dapat dilengkapi Nomor Surat Jalan Pabrik (No. DOC) dan Nama Supir sebelum armada diberangkatkan.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            type="button"
-            onClick={() => navigate("/dashboard/pengiriman")}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 shadow-sm transition"
+            onClick={() => refresh()}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
           >
-            <PlusCircle size={15} />
-            + Input Pengiriman Baru
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            <span>Refresh</span>
           </button>
 
           <button
-            type="button"
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs disabled:opacity-50 transition"
+            onClick={() => navigate("/dashboard/pengiriman")}
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition"
           >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            Segarkan
+            <Truck size={14} />
+            <span>+ Input SO Baru</span>
           </button>
         </div>
       </div>
 
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/40 p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-800">Rencana Belum Diajukan</span>
-            <div className="rounded-lg bg-amber-500/20 p-2 text-amber-700">
-              <FileText size={18} />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-amber-950 mt-2 font-mono">{draftOrders.length}</p>
-          <span className="text-[11px] text-amber-700">Menunggu data wajib / ACC</span>
-        </div>
-
-        <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Total Toko Tujuan</span>
-            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-              <Building2 size={18} />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2 font-mono">{totalToko}</p>
-          <span className="text-[11px] text-slate-400">Depo / Lokasi Pengantaran</span>
-        </div>
-
-        <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-600">Total Tarif Dasar</span>
-            <div className="rounded-lg bg-violet-50 p-2 text-violet-600">
-              <Truck size={18} />
-            </div>
-          </div>
-          <p className="text-xl font-black text-violet-800 mt-2 font-mono">
-            {formatRupiah(totalBersih)}
+      {/* Info Banner Alur */}
+      <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50/50 p-4 text-xs text-blue-900 flex items-start gap-3">
+        <ShieldCheck size={20} className="text-blue-700 shrink-0 mt-0.5" />
+        <div className="leading-relaxed">
+          <p className="font-bold text-blue-950">
+            Alur Baru Operasional (ACC SO Terlebih Dahulu)
           </p>
-          <span className="text-[11px] text-slate-400">Jumlah tarif kiriman aktif</span>
+          <p className="mt-0.5 text-blue-800">
+            1. Admin mengajukan jadwal SO & uang jalan ke Direktur. &nbsp;•&nbsp; 
+            2. Direktur memeriksa dan memberikan <strong>ACC SO</strong>. &nbsp;•&nbsp; 
+            3. Pada halaman ini, lengkapi <strong>Surat Jalan Pabrik (No. DOC)</strong> dan <strong>Nama Supir</strong>. Setelah disimpan, status otomatis menjadi <strong>Dalam Pengiriman</strong>.
+          </p>
         </div>
       </div>
 
-      {/* Main Table Container */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
-          <div className="space-y-0.5">
+      {/* Metrics Bar */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+              SO Sudah di-ACC Direktur
+            </span>
+            <span className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
+              <ShieldCheck size={16} />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl font-black text-slate-900">{countAccReady}</p>
+          <p className="text-[11px] text-slate-500 mt-1">Siap dilengkapi surat jalan & supir</p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-200 bg-white p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
+              Total Menunggu Input
+            </span>
+            <span className="rounded-xl bg-amber-100 p-2 text-amber-700">
+              <AlertTriangle size={16} />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl font-black text-slate-900">{pendingOrders.length}</p>
+          <p className="text-[11px] text-slate-500 mt-1">Rencana pengiriman belum berangkat</p>
+        </div>
+
+        <div className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-700">
+              Total Uang Jalan Ter-ACC
+            </span>
+            <span className="rounded-xl bg-indigo-100 p-2 text-indigo-700">
+              <TrendingUp size={16} />
+            </span>
+          </div>
+          <p className="mt-2 text-2xl font-black text-slate-900">{formatRupiah(totalUangJalan)}</p>
+          <p className="text-[11px] text-slate-500 mt-1">Sesuai pengajuan uang jalan supir</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Main Table Section */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-slate-100">
+          <div>
             <h2 className="text-base font-bold text-slate-900">
-              Daftar Draft Input Pengiriman (Menunggu No. Dokumen Surat Jalan)
+              Daftar SO Siap Dilengkapi Surat Jalan & Supir
             </h2>
             <p className="text-xs text-slate-500">
-              Isi No. Doc dan tanggal sesuai surat jalan perusahaan. Pengajuan memerlukan schedule, supir, dan nomor polisi.
+              Pilih order untuk mengisi nomor surat jalan pabrik Karawang dan nama supir yang bertugas.
             </p>
           </div>
 
-          {/* Action Batch Bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            {selectedIds.length > 0 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleGoToConsolidate}
-                  className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 shadow-xs transition"
-                >
-                  <Layers size={13} />
-                  <span>Satukan ({selectedIds.length}) ke 1 Kali Jalan</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleBatchSubmit}
-                  className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-xs transition"
-                >
-                  <Send size={13} />
-                  <span>Ajukan ({selectedIds.length}) ke Direktur</span>
-                </button>
-              </>
-            )}
-
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                placeholder="Cari DO, Toko, Rute, Supir..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-lg border border-slate-300 pl-8 pr-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none w-56 sm:w-64"
-              />
-            </div>
+          <div className="relative">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              type="text"
+              placeholder="Cari SO, Toko, Rute, Armada..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="rounded-xl border border-slate-300 pl-8.5 pr-3.5 py-2 text-xs focus:border-blue-500 focus:outline-none w-56 sm:w-64"
+            />
           </div>
         </div>
 
         {loading ? (
-          <div className="py-16 text-center text-sm text-slate-500">Memuat daftar draft...</div>
+          <div className="py-16 text-center text-sm text-slate-500">Memuat daftar rencana...</div>
         ) : filteredOrders.length === 0 ? (
           <div className="py-16 text-center">
             <CheckCircle2 size={44} className="mx-auto text-emerald-500 mb-2" />
             <p className="text-sm font-bold text-slate-800">
-              Tidak Ada Rencana yang Menunggu
+              Semua SO Sudah Dilengkapi Surat Jalan & Supir
             </p>
             <p className="text-xs text-slate-500 mt-1 mb-4">
-              Rencana baru yang disimpan akan muncul di sini untuk dilengkapi dan diajukan.
+              Tidak ada rencana yang tertahan. Seluruh armada siap jalan atau sedang dalam perjalanan.
             </p>
             <button
               type="button"
               onClick={() => navigate("/dashboard/pengiriman")}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
             >
-              + Input Pengiriman Baru
+              + Input Pengajuan SO Baru
             </button>
           </div>
         ) : (
           <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
-                <tr>
-                  <th className="px-3 py-3 w-8 text-center">
-                    <input
-                      type="checkbox"
-                      onChange={handleSelectAll}
-                      checked={
-                        filteredOrders.filter(canSubmitOrder).length > 0 &&
-                        filteredOrders.filter(canSubmitOrder).every((order) => selectedIds.includes(order.id))
-                      }
-                      disabled={!filteredOrders.some(canSubmitOrder)}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                    />
-                  </th>
-                  <th className="px-3 py-3">No. Schedule</th>
-                  <th className="px-3 py-3">Toko / Depo Tujuan</th>
-                  <th className="px-3 py-3">Rute Karawang & Tarif</th>
-                  <th className="px-3 py-3">Armada & Supir</th>
-                  <th className="px-3 py-3">Surat Jalan Pabrik</th>
-                  <th className="px-3 py-3 text-center">Aksi Cepat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pagination.items.map((order) => {
-                  const isChecked = selectedIds.includes(order.id);
-                  const hasDoc = order.noDocPerusahaan?.trim() && order.tglDocPerusahaan;
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase text-[11px]">
+                  <tr>
+                    <th className="px-4 py-3">No. Schedule (SO)</th>
+                    <th className="px-3 py-3">Toko / Depo Tujuan</th>
+                    <th className="px-3 py-3">Rute & Tarif</th>
+                    <th className="px-3 py-3">Armada Mobil</th>
+                    <th className="px-3 py-3">Uang Jalan Supir</th>
+                    <th className="px-3 py-3">Surat Jalan & Supir</th>
+                    <th className="px-3 py-3">Status ACC</th>
+                    <th className="px-3 py-3 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pagination.items.map((order) => {
+                    const hasDoc = order.noDocPerusahaan?.trim() && order.tglDocPerusahaan;
+                    const hasSupir = Boolean(order.namaSupir?.trim());
+                    const isAccDirektur = order.status === "DISETUJUI";
 
-                  return (
-                    <tr
-                      key={order.id}
-                      className={`transition hover:bg-slate-50/70 ${
-                        isChecked ? "bg-amber-50/40" : ""
-                      }`}
-                    >
-                      <td className="px-3 py-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleToggleSelect(order.id)}
-                          disabled={!canSubmitOrder(order)}
-                          title={canSubmitOrder(order) ? "Pilih untuk pengajuan massal" : "Lengkapi schedule, armada, No. Doc, dan tanggal terlebih dahulu"}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                        />
-                      </td>
+                    return (
+                      <tr key={order.id} className="transition hover:bg-slate-50/80">
+                        <td className="px-4 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          {order.noSchedule || "-"}
+                          <p className="text-[10px] font-normal text-slate-400 font-sans mt-0.5">
+                            {formatTanggal(order.tglSchedule || order.createdAt)}
+                          </p>
+                        </td>
 
-                      <td className="px-3 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {order.noSchedule || "-"}
-                        <p className="text-[10px] font-normal text-slate-400 font-sans mt-0.5">
-                          {formatTanggal(order.createdAt)}
-                        </p>
-                      </td>
+                        <td className="px-3 py-3">
+                          <p className="font-semibold text-slate-900">
+                            {order.namaToko || order.namaPenerima || "-"}
+                          </p>
+                          <p className="text-slate-500 text-[11px] truncate max-w-xs">
+                            {order.alamatLengkapTujuan || "-"}
+                          </p>
+                        </td>
 
-                      <td className="px-3 py-3">
-                        <p className="font-semibold text-slate-900">
-                          {order.namaToko || order.namaPenerima || "-"}
-                        </p>
-                        <p className="text-slate-500 text-[11px] truncate max-w-xs">
-                          {order.alamatLengkapTujuan || "-"}
-                        </p>
-                      </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <p className="font-semibold text-blue-900">{order.tujuanKirim}</p>
+                          <p className="text-slate-500 text-[11px]">
+                            {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
+                          </p>
+                        </td>
 
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <p className="font-semibold text-blue-900">{order.tujuanKirim}</p>
-                        <p className="text-emerald-700 font-bold text-[11px]">
-                          {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
-                        </p>
-                        <span className="text-[10px] text-slate-400">
-                          Bruto: {formatRupiah(order.biayaEkspedisi ?? order.totalSetelahPPh ?? 0)}
-                        </span>
-                      </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <p className="font-mono font-bold uppercase text-slate-900">
+                            {order.noPolisiKendaraan || "-"}
+                          </p>
+                          <p className="text-slate-500 text-[11px]">
+                            {order.tipeMobilRit || "-"}
+                          </p>
+                        </td>
 
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <p className="font-medium text-slate-800">{order.namaSupir || "-"}</p>
-                        <p className="text-slate-500 uppercase font-mono text-[10px]">
-                          {order.noPolisiKendaraan || "(Belum diplot)"}
-                        </p>
-                      </td>
-
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {hasDoc ? (
-                          <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-emerald-800 font-mono font-bold border border-emerald-300/60">
-                              <CheckCircle2 size={11} />
-                              {order.noDocPerusahaan}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block font-sans">
-                              Tgl: {formatTanggal(order.tglDocPerusahaan)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-0.5 text-red-700 font-medium border border-red-200 text-[11px]">
-                            <AlertTriangle size={11} className="text-red-500" />
-                            Belum Ada Surat Jalan
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="font-bold text-emerald-700 font-mono">
+                            {order.uangJalanSupir ? formatRupiah(order.uangJalanSupir) : "-"}
                           </span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="px-3 py-3 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(order)}
-                            className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 transition"
-                            title="Lihat Detail"
-                          >
-                            <Eye size={13} />
-                          </button>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="space-y-1">
+                            {hasDoc ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-emerald-800 font-mono font-bold border border-emerald-200 text-[10px]">
+                                <CheckCircle2 size={10} />
+                                {order.noDocPerusahaan}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-red-700 font-medium border border-red-200 text-[10px]">
+                                <AlertTriangle size={10} className="text-red-500" />
+                                Belum Ada No. DOC
+                              </span>
+                            )}
 
-                          <button
-                            type="button"
-                            onClick={() => openAttachModal(order, false)}
-                            className="flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-600 shadow-2xs transition"
-                            title="Input Surat Jalan Pabrik"
-                          >
-                            <FileText size={12} />
-                            <span>{hasDoc ? "Ubah SJ" : "Input SJ Pabrik"}</span>
-                          </button>
+                            <div>
+                              {hasSupir ? (
+                                <span className="text-[11px] font-semibold text-slate-700">
+                                  Supir: {order.namaSupir}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-amber-700 font-medium">
+                                  Supir: Belum Di-plot
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
 
-                          <button
-                            type="button"
-                            onClick={() => openAttachModal(order, true)}
-                            disabled={!canScheduleOrder(order)}
-                            title={canScheduleOrder(order) ? "Ajukan ke Direktur untuk di-ACC" : "Lengkapi schedule, tipe rit, dan armada terlebih dahulu"}
-                            className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            <Send size={12} />
-                            <span>Ajukan ACC</span>
-                          </button>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {isAccDirektur ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                              <ShieldCheck size={11} />
+                              ACC Direktur OK
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
+                              {order.status}
+                            </span>
+                          )}
+                        </td>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDraft(order)}
-                            className="rounded-lg bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 transition"
-                            title="Hapus draft pengiriman"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <Pagination {...pagination} onPageChange={pagination.setPage} />
+                        <td className="px-3 py-3 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrder(order)}
+                              className="rounded-lg bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 transition"
+                              title="Lihat Detail SO"
+                            >
+                              <Eye size={14} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => openAttachModal(order)}
+                              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-700 transition"
+                              title="Input Surat Jalan Pabrik & Supir"
+                            >
+                              <FileText size={13} />
+                              <span>Input SJ & Supir</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDraft(order)}
+                              className="rounded-lg bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition"
+                              title="Hapus Rencana"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination {...pagination} onPageChange={pagination.setPage} />
           </>
         )}
       </div>
 
-      {/* Modal Input Surat Jalan Pabrik */}
+      {/* Modal Input Surat Jalan Pabrik & Supir */}
       {attachModal.open && (
         <Modal
-          title={
-            attachModal.submitDirectly
-              ? "Input No. Doc & Ajukan ke Direktur"
-              : "Input / Perbarui Nomor Dokumen Surat Jalan Pabrik"
-          }
+          title="Input Surat Jalan Pabrik & Penugasan Supir"
           onClose={() => setAttachModal({ ...attachModal, open: false })}
+          isOpen={attachModal.open}
         >
           <div className="space-y-4 text-xs">
-            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-1">
+            {/* Info Rangkuman SO yang sudah di-ACC */}
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-1.5">
+              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Jadwal SO</span>
+                  <p className="font-mono font-bold text-blue-900 text-sm">
+                    {attachModal.order?.noSchedule || "-"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-emerald-700">Uang Jalan Supir</span>
+                  <p className="font-mono font-bold text-emerald-800 text-sm">
+                    {formatRupiah(attachModal.order?.uangJalanSupir || 0)}
+                  </p>
+                </div>
+              </div>
+
               <p>
-                <strong className="text-amber-950">No. Schedule:</strong>{" "}
-                <span className="font-mono font-bold text-blue-900">
-                  {attachModal.order?.noSchedule || "-"}
-                </span>
-              </p>
-              <p>
-                <strong className="text-amber-950">Toko Tujuan:</strong>{" "}
+                <strong className="text-slate-700">Toko / Depo:</strong>{" "}
                 {attachModal.order?.namaToko || attachModal.order?.namaPenerima}
               </p>
               <p>
-                <strong className="text-amber-950">Rute & Supir:</strong>{" "}
-                {attachModal.order?.tujuanKirim} · {attachModal.order?.namaSupir} (
-                {attachModal.order?.noPolisiKendaraan || "Armada belum diplot"})
+                <strong className="text-slate-700">Rute & Tujuan:</strong>{" "}
+                {attachModal.order?.tujuanKirim}
+              </p>
+              <p>
+                <strong className="text-slate-700">Armada Mobil:</strong>{" "}
+                <span className="font-mono font-bold uppercase">{attachModal.order?.noPolisiKendaraan}</span>
+                {" "}— {attachModal.order?.tipeMobilRit}
               </p>
             </div>
 
@@ -561,9 +500,10 @@ export default function DraftSuratJalanPage() {
               </div>
             )}
 
+            {/* Input Dokumen Pabrik */}
             <div>
-              <label className="block font-semibold text-slate-800 mb-1">
-                Nomor Surat Jalan dari Perusahaan / Pabrik (Karawang) *
+              <label className="block font-bold text-slate-800 mb-1">
+                Nomor Surat Jalan dari Pabrik / Dokumen (Karawang) *
               </label>
               <input
                 type="text"
@@ -574,17 +514,17 @@ export default function DraftSuratJalanPage() {
                 }
                 autoFocus
                 required
-                className="w-full rounded-lg border border-slate-300 p-2.5 font-mono text-xs font-bold focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-2.5 font-mono text-xs font-bold uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                Masukkan nomor fisik dokumen pengiriman yang dikeluarkan oleh pabrik GRC Karawang.
+                Masukkan nomor fisik dokumen pengiriman yang dikeluarkan oleh pabrik GRC.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Tanggal Dokumen Pabrik
+                <label className="block font-bold text-slate-700 mb-1">
+                  Tanggal Dokumen Pabrik *
                 </label>
                 <input
                   type="date"
@@ -593,23 +533,64 @@ export default function DraftSuratJalanPage() {
                     setAttachModal({ ...attachModal, tglDocPerusahaan: e.target.value })
                   }
                   required
-                  className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Catatan Tambahan (Opsional)
+                <label className="block font-bold text-slate-700 mb-1">
+                  Catatan Dokumen (opsional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Catatan surat jalan..."
+                  placeholder="Keterangan surat jalan..."
                   value={attachModal.keteranganDoc}
                   onChange={(e) =>
                     setAttachModal({ ...attachModal, keteranganDoc: e.target.value })
                   }
-                  className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
+              </div>
+            </div>
+
+            {/* Input Supir & No HP */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3.5 space-y-3">
+              <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                <User size={15} className="text-amber-700" />
+                Penugasan Supir Armada
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Nama Supir *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nama supir yang bertugas"
+                    value={attachModal.namaSupir}
+                    onChange={(e) =>
+                      setAttachModal({ ...attachModal, namaSupir: e.target.value })
+                    }
+                    required
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    No. HP Supir (opsional)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="Nomor telepon supir"
+                    value={attachModal.noHpSupir}
+                    onChange={(e) =>
+                      setAttachModal({ ...attachModal, noHpSupir: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
               </div>
             </div>
 
@@ -618,7 +599,7 @@ export default function DraftSuratJalanPage() {
                 type="button"
                 disabled={attachModal.processing}
                 onClick={() => setAttachModal({ ...attachModal, open: false })}
-                className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-600 hover:bg-slate-200"
+                className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition"
               >
                 Batal
               </button>
@@ -627,23 +608,24 @@ export default function DraftSuratJalanPage() {
                 type="button"
                 disabled={attachModal.processing}
                 onClick={handleSaveDoc}
-                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700 shadow-sm disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition disabled:opacity-50 shadow-md"
               >
-                {attachModal.submitDirectly ? <Send size={13} /> : <FileText size={13} />}
-                {attachModal.processing
-                  ? "Menyimpan..."
-                  : attachModal.submitDirectly
-                  ? "Simpan & Ajukan ke Direktur"
-                  : "Simpan Surat Jalan Pabrik"}
+                <Send size={13} />
+                <span>
+                  {attachModal.processing ? "Menyimpan..." : "Simpan & Armada Berangkat"}
+                </span>
               </button>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Modal Detail DO */}
+      {/* Detail Modal */}
       {selectedOrder && (
-        <DeliveryOrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+        <DeliveryOrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+        />
       )}
     </div>
   );

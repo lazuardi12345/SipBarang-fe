@@ -22,6 +22,8 @@ import {
   PlusSquare,
   Sparkles,
   Settings,
+  Car,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, APP_NAME, COMPANY_NAME } from '../utils/constants';
@@ -43,7 +45,7 @@ const MENU = [
   },
   {
     href: '/dashboard/pengiriman',
-    label: 'Input Pengiriman',
+    label: 'Input SO',
     icon: Truck,
     roles: [UserRole.ADMIN],
   },
@@ -54,9 +56,15 @@ const MENU = [
     roles: [UserRole.ADMIN],
   },
   {
+    href: '/dashboard/master-kendaraan',
+    label: 'Master Kendaraan',
+    icon: Car,
+    roles: [UserRole.ADMIN, UserRole.DIREKTUR, UserRole.SUPERADMIN],
+  },
+  {
     href: '/dashboard/draft-surat-jalan',
-    label: 'Tunggu Surat Jalan',
-    badge: 'Draft',
+    label: 'Input SJ & Supir',
+    badge: 'Siap Isi',
     icon: AlertTriangle,
     roles: [UserRole.ADMIN],
   },
@@ -84,6 +92,12 @@ const MENU = [
     label: 'Pembukuan',
     icon: Layers,
     roles: [UserRole.ADMIN, UserRole.DIREKTUR],
+  },
+  {
+    href: '/dashboard/pengeluaran-lain',
+    label: 'Pengeluaran Lain',
+    icon: Wallet,
+    roles: [UserRole.DIREKTUR, UserRole.SUPERADMIN],
   },
   {
     href: '/dashboard/riwayat',
@@ -213,7 +227,7 @@ export default function Layout({ children }) {
         ]
       : [
           { href: '/dashboard', label: 'Beranda', icon: LayoutDashboard },
-          { href: '/dashboard/pengiriman', label: 'Input DO', icon: Truck },
+          { href: '/dashboard/pengiriman', label: 'Input SO', icon: Truck },
           { href: '/dashboard/pembukuan', label: 'Pembukuan', icon: Layers },
           { href: '/dashboard/invoice', label: 'Invoice', icon: FileText },
         ];
