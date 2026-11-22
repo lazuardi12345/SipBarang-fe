@@ -5,6 +5,11 @@ import { terbilang } from "../../utils/terbilang";
 import { Printer, X, FileText } from "lucide-react";
 
 function getDocumentNumbers(item) {
+  const shipmentNumbers = (item.ritPerDocument || [])
+    .map((entry) => entry.noDocPerusahaan)
+    .filter(Boolean);
+  if (shipmentNumbers.length > 0) return shipmentNumbers;
+
   const numbers = String(item.noDocPerusahaan || item.noSchedule || "")
     .split(/[,;\n]+/)
     .map((number) => number.trim())
@@ -12,12 +17,20 @@ function getDocumentNumbers(item) {
   return numbers.length > 0 ? numbers : ["-"];
 }
 
+function getDocumentDate(item, documentNumber) {
+  const documentDate = item.ritPerDocument?.find(
+    (entry) => entry.noDocPerusahaan === documentNumber
+  )?.tglDocPerusahaan;
+  return documentDate || item.tglDocPerusahaan || item.tanggalKirim;
+}
+
 function getDocumentRit(item, documentNumber) {
   const documentRit = item.ritPerDocument?.find(
     (entry) => entry.noDocPerusahaan === documentNumber
   )?.rit;
   const value = documentRit || item.tipeMobilRit || "1";
-  return String(value).match(/\d+/)?.[0] || value;
+  const ritNumber = String(value).match(/\brit\s*(\d+)/i)?.[1];
+  return ritNumber || String(value).match(/\d+/)?.[0] || value;
 }
 
 function getInvoiceItemAmounts(item) {
@@ -610,7 +623,7 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                   <th>NO. SCHEDULE</th>
                   <th>NO. DOC</th>
                   <th>RIT</th>
-                  <th>TANGGAL</th>
+                  <th>TANGGAL DOC</th>
                   <th>AREA</th>
                   <th>TARIF</th>
                   <th>PPH 2%</th>
@@ -629,17 +642,21 @@ export function InvoiceOfficialView({ invoice, onClose }) {
                         <>
                           <td>{documentNumber === "-" ? "-" : documentNumber}</td>
                           <td className="text-center">{getDocumentRit(item, documentNumber)}</td>
-                          <td rowSpan={documentCount} className="text-center">{formatTanggal(item.tanggalKirim || item.tglDocPerusahaan)}</td>
-                          <td rowSpan={documentCount}>{getDestination(item.tujuanKirim || item.areaDistribusi)}</td>
-                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(tarif)}</td>
-                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">- {formatRupiah(pph2)}</td>
-                          <td rowSpan={documentCount} className="text-right whitespace-nowrap font-semibold">{formatRupiah(total)}</td>
                         </>
                       )}
                       {documentIndex > 0 && (
                         <>
                           <td>{documentNumber}</td>
                           <td className="text-center">{getDocumentRit(item, documentNumber)}</td>
+                        </>
+                      )}
+                      <td className="text-center">{formatTanggal(getDocumentDate(item, documentNumber))}</td>
+                      {documentIndex === 0 && (
+                        <>
+                          <td rowSpan={documentCount}>{getDestination(item.tujuanKirim || item.areaDistribusi)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">{formatRupiah(tarif)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap">- {formatRupiah(pph2)}</td>
+                          <td rowSpan={documentCount} className="text-right whitespace-nowrap font-semibold">{formatRupiah(total)}</td>
                         </>
                       )}
                     </tr>

@@ -12,7 +12,6 @@ import InvoicePage from './pages/InvoicePage';
 import InvoiceVerificationPage from './pages/InvoiceVerificationPage';
 import PembukuanPage from './pages/PembukuanPage';
 import TarifPage from './pages/TarifPage';
-import KendaraanPage from './pages/KendaraanPage';
 import PengeluaranLainPage from './pages/PengeluaranLainPage';
 import SuperadminPage from './pages/SuperadminPage';
 import Layout from './components/Layout';
@@ -74,18 +73,6 @@ function AppRoutes() {
             <Layout>
               <RoleGuard allow={[UserRole.ADMIN]}>
                 <TarifPage />
-              </RoleGuard>
-            </Layout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path={APP_ROUTES.masterKendaraan}
-        element={
-          <PrivateRoute>
-            <Layout>
-              <RoleGuard allow={[UserRole.ADMIN, UserRole.DIREKTUR, UserRole.SUPERADMIN]}>
-                <KendaraanPage />
               </RoleGuard>
             </Layout>
           </PrivateRoute>

@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, Truck, UserRound, Building2, User, Send, DollarSign } from "lucide-react";
+import { CheckCircle2, FileText, MapPin, Send, Truck } from "lucide-react";
 import { useTarif } from "../../hooks/useTarif";
-import { useKendaraan } from "../../hooks/useKendaraan";
 import { formatRupiah } from "../../utils/format";
 
 export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
   const { tarifList, loading: loadingTarif } = useTarif();
-  const { kendaraanList, loading: loadingKendaraan } = useKendaraan();
 
   const [form, setForm] = useState({
     namaToko: "",
@@ -15,11 +13,6 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
     tarifId: "",
     noSchedule: "",
     tglSchedule: "",
-    kendaraanId: "",
-    tipeMobil: "",
-    muatanTon: "8 Ton",
-    rit: "Rit 1",
-    noPolisiKendaraan: "",
     uangJalanSupir: "",
   });
   const [error, setError] = useState(null);
@@ -29,39 +22,9 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
     () => tarifList.find((tarif) => tarif.id === form.tarifId),
     [tarifList, form.tarifId]
   );
-
-  const selectedKendaraan = useMemo(
-    () => kendaraanList.find((k) => k.id === form.kendaraanId),
-    [kendaraanList, form.kendaraanId]
-  );
-
-  const handleSelectKendaraan = (event) => {
-    const val = event.target.value;
-    if (val === "MANUAL") {
-      setForm((prev) => ({
-        ...prev,
-        kendaraanId: "MANUAL",
-        noPolisiKendaraan: "",
-        tipeMobil: "",
-      }));
-      return;
-    }
-
-    const found = kendaraanList.find((k) => k.id === val);
-    if (found) {
-      setForm((prev) => ({
-        ...prev,
-        kendaraanId: found.id,
-        noPolisiKendaraan: found.noPolisi,
-        tipeMobil: found.tipeMobil,
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        kendaraanId: "",
-      }));
-    }
-  };
+  const uangJalanTampilan = form.uangJalanSupir
+    ? Number(form.uangJalanSupir).toLocaleString("id-ID")
+    : "";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -70,19 +33,9 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
 
     const noSchedule = form.noSchedule.trim();
     const tglSchedule = form.tglSchedule;
-    const noPolisi = form.noPolisiKendaraan.trim().toUpperCase();
-    const tipe = form.tipeMobil.trim() || "Truk";
-    const muatan = form.muatanTon.trim() || "8 Ton";
-    const rit = form.rit.trim() || "Rit 1";
-    const tipeMobilRit = `${tipe} (${muatan}) / ${rit}`;
 
     if (!form.tarifId || !noSchedule || !tglSchedule) {
-      setError("Tujuan, No. Schedule, dan Tanggal Schedule wajib diisi.");
-      return;
-    }
-
-    if (!noPolisi) {
-      setError("Armada kendaraan / plat nomor wajib dipilih atau diisi.");
+      setError("Tujuan, No. SO, dan Tanggal SO wajib diisi.");
       return;
     }
 
@@ -101,8 +54,6 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
         tarifId: form.tarifId,
         noSchedule,
         tglSchedule,
-        tipeMobilRit,
-        noPolisiKendaraan: noPolisi,
         uangJalanSupir: Number(form.uangJalanSupir),
         namaSupir: "",
         noHpSupir: "",
@@ -116,11 +67,6 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
         tarifId: "",
         noSchedule: "",
         tglSchedule: "",
-        kendaraanId: "",
-        tipeMobil: "",
-        muatanTon: "8 Ton",
-        rit: "Rit 1",
-        noPolisiKendaraan: "",
         uangJalanSupir: "",
       });
     } catch (submitError) {
@@ -221,36 +167,35 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
         )}
       </div>
 
-      {/* Bagian 2: Data Pengajuan SO, Armada & Uang Jalan */}
+      {/* Bagian 2: Data SO & Uang Jalan */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-            <Truck size={20} />
+            <FileText size={20} />
           </span>
           <div>
-            <h2 className="font-bold text-slate-900">Data Schedule, Armada & Uang Jalan Supir</h2>
+            <h2 className="font-bold text-slate-900">Data SO & Uang Jalan Supir</h2>
             <p className="text-xs text-slate-500">
-              Pengajuan SO dan Uang Jalan diajukan ke Direktur terlebih dahulu untuk mendapatkan ACC.
+              SO dan uang jalan diajukan ke Direktur untuk mendapatkan ACC.
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* No. Schedule & Tanggal */}
           <label className="block text-xs font-semibold text-slate-700">
-            No. Schedule (SO) *
+            No. SO *
             <input
               type="text"
               value={form.noSchedule}
               onChange={(event) => setForm((current) => ({ ...current, noSchedule: event.target.value }))}
-              placeholder="Contoh: SCH-202611-001"
+              placeholder="Nomor SO"
               required
               className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </label>
 
           <label className="block text-xs font-semibold text-slate-700">
-            Tanggal Schedule *
+            Tanggal SO *
             <input
               type="date"
               value={form.tglSchedule}
@@ -260,115 +205,27 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
             />
           </label>
 
-          {/* Pemilihan Kendaraan dari Master */}
-          <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-            <label className="block text-xs font-bold text-slate-800">
-              Pilih Kendaraan / Mobil *
-              <select
-                value={form.kendaraanId}
-                onChange={handleSelectKendaraan}
-                disabled={loadingKendaraan}
-                className="mt-1.5 w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="">-- Pilih Armada dari Master Kendaraan --</option>
-                {kendaraanList.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.noPolisi} — {k.tipeMobil} ({k.kepemilikan === "MILIK_PRIBADI" ? "Milik Pribadi" : `Milik Rekanan: ${k.namaPemilik || "-"}`})
-                  </option>
-                ))}
-                <option value="MANUAL">+ Input Manual / Belum Terdaftar di Master</option>
-              </select>
-            </label>
-
-            {selectedKendaraan && (
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                {selectedKendaraan.kepemilikan === "MILIK_PRIBADI" ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 border border-blue-200 px-2.5 py-0.5 text-xs font-bold text-blue-800">
-                    <Building2 size={12} /> Milik Pribadi (PT Almira Yuniar Trek)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-200 px-2.5 py-0.5 text-xs font-bold text-amber-800">
-                    <User size={12} /> Milik Rekanan / Vendor: {selectedKendaraan.namaPemilik || "-"}
-                  </span>
-                )}
-                {selectedKendaraan.catatan && (
-                  <span className="text-xs text-slate-500 italic">
-                    ({selectedKendaraan.catatan})
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Plat Nomor & Tipe Mobil */}
-          <label className="block text-xs font-semibold text-slate-700">
-            No. Polisi Armada (Plat Nomor) *
-            <input
-              type="text"
-              value={form.noPolisiKendaraan}
-              onChange={(event) => setForm((current) => ({ ...current, noPolisiKendaraan: event.target.value.toUpperCase() }))}
-              placeholder="Contoh: B 9482 KDA"
-              required
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-mono text-sm font-bold uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </label>
-
-          <label className="block text-xs font-semibold text-slate-700">
-            Tipe Mobil / Jenis Truk *
-            <input
-              type="text"
-              value={form.tipeMobil}
-              onChange={(event) => setForm((current) => ({ ...current, tipeMobil: event.target.value }))}
-              placeholder="Contoh: CDD Box, Fuso, Tronton"
-              required
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </label>
-
-          {/* Kapasitas Muatan & Rit */}
-          <label className="block text-xs font-semibold text-slate-700">
-            Kapasitas Muatan (Tonase) *
-            <input
-              type="text"
-              value={form.muatanTon}
-              onChange={(event) => setForm((current) => ({ ...current, muatanTon: event.target.value }))}
-              placeholder="Contoh: 8 Ton / 5 Ton"
-              required
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </label>
-
-          <label className="block text-xs font-semibold text-slate-700">
-            Rit Pengiriman *
-            <input
-              type="text"
-              value={form.rit}
-              onChange={(event) => setForm((current) => ({ ...current, rit: event.target.value }))}
-              placeholder="Contoh: Rit 1, Rit 2"
-              required
-              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
-          </label>
-
-          {/* UANG JALAN SUPIR (Diisi di awal untuk di-ACC Direktur) */}
           <label className="block text-xs font-bold text-slate-800 md:col-span-2">
-            Uang Jalan Supir (Diajukan ke Direktur) *
+            Uang Jalan *
             <div className="relative mt-1.5">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-emerald-700">
                 Rp
               </span>
               <input
-                type="number"
-                min="0"
-                value={form.uangJalanSupir}
-                onChange={(event) => setForm((current) => ({ ...current, uangJalanSupir: event.target.value }))}
-                placeholder="Contoh: 500000"
+                type="text"
+                inputMode="numeric"
+                value={uangJalanTampilan}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  uangJalanSupir: event.target.value.replace(/\D/g, ""),
+                }))}
+                placeholder="1.000.000"
                 required
                 className="w-full rounded-xl border border-emerald-300 bg-emerald-50/30 pl-11 pr-4 py-2.5 text-base font-black text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               />
             </div>
             <span className="mt-1 block text-[11px] font-normal text-slate-500">
-              Nominal uang jalan supir diajukan bersama jadwal SO ini untuk disetujui oleh Direktur Utama.
+              Nominal uang jalan diajukan bersama SO untuk disetujui Direktur.
             </span>
           </label>
         </div>
@@ -376,11 +233,11 @@ export function CompanyDeliveryOrderForm({ onSubmit, submitting }) {
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 leading-relaxed">
         <div className="flex items-center gap-2 font-bold mb-1">
-          <UserRound size={16} />
-          <span>Alur Penugasan Supir & Surat Jalan Pabrik</span>
+          <Truck size={16} />
+          <span>Detail Armada Setelah ACC</span>
         </div>
         <p>
-          Setelah jadwal SO dan uang jalan ini disetujui (ACC) oleh Direktur Utama, Anda dapat melengkapi <strong>Nomor Surat Jalan Pabrik (No. DOC)</strong> dan <strong>Nama Supir serta No. HP</strong> di menu <em>Input SJ & Supir</em>.
+          Setelah SO disetujui Direktur, admin melengkapi No. DOC, supir, kepemilikan, plat, tipe mobil, dan rit di menu <em>Input SJ & Supir</em>.
         </p>
       </div>
 

@@ -7,6 +7,7 @@ import { Alert } from "../ui/Alert";
 
 export function ReportDeliveryForm({
   order,
+  shipment,
   onSubmit,
   onClose,
 }) {
@@ -69,6 +70,7 @@ export function ReportDeliveryForm({
     try {
       await onSubmit({
         orderId: order.id,
+        shipmentId: shipment?.id,
         namaPenerimaBarang,
         catatanPelaporan,
         buktiPengirimanUrl,
@@ -85,7 +87,7 @@ export function ReportDeliveryForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <Alert type="error">{error}</Alert>}
       <p className="text-sm text-slate-600">
-        Melaporkan pengiriman <b>{order.noSchedule || "-"}</b> ke {order.tujuanKirim}
+        Melaporkan DOC <b>{shipment?.noDocPerusahaan || order.noDocPerusahaan || "-"}</b> untuk SO <b>{order.noSchedule || "-"}</b> ke {order.tujuanKirim}
       </p>
       <Input
         label="Nama Penerima yang Menerima Barang"

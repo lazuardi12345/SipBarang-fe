@@ -16,10 +16,7 @@ import {
   Eye,
   RefreshCw,
   CheckCircle2,
-  Building2,
-  Calendar,
   Search,
-  Trash2,
   User,
   ShieldCheck,
   TrendingUp
@@ -27,7 +24,7 @@ import {
 
 export default function DraftSuratJalanPage() {
   const navigate = useNavigate();
-  const { orders, loading, error, refresh, attachDocPerusahaan, submitToDirector, remove } =
+  const { orders, loading, error, refresh, attachDocPerusahaan } =
     useDeliveryOrders();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,25 +37,17 @@ export default function DraftSuratJalanPage() {
     noDocPerusahaan: "",
     tglDocPerusahaan: "",
     namaSupir: "",
-    noHpSupir: "",
-    keteranganDoc: "",
+    jenisKendaraan: "",
+    noPolisiKendaraan: "",
+    tipeMobil: "",
+    rit: "",
     processing: false,
     error: null,
   });
 
-  // Filter orders yang perlu Surat Jalan Pabrik dan Supir:
-  // 1. SO yang sudah di-ACC Direktur (DISETUJUI) tapi belum ada surat jalan pabrik atau belum ada supir
-  // 2. Draft / Planning yang masih belum diajukan
+  // Keep the SO available while in transit so admins can add another DOC.
   const pendingOrders = useMemo(() => {
-    return orders.filter((o) => {
-      if (o.status === "DISETUJUI" && (!o.noDocPerusahaan?.trim() || !o.namaSupir?.trim())) {
-        return true;
-      }
-      if (o.status === "DRAFT" || o.status === "PLANNING") {
-        return true;
-      }
-      return false;
-    });
+    return orders.filter((o) => ["DISETUJUI", "APPROVED", "DALAM_PENGIRIMAN"].includes(o.status));
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
@@ -68,9 +57,9 @@ export default function DraftSuratJalanPage() {
       const matchNo = (o.noSchedule || "").toLowerCase().includes(q);
       const matchToko = (o.namaToko || o.namaPenerima || "").toLowerCase().includes(q);
       const matchRute = (o.tujuanKirim || "").toLowerCase().includes(q);
-      const matchDoc = (o.noDocPerusahaan || "").toLowerCase().includes(q);
-      const matchSupir = (o.namaSupir || "").toLowerCase().includes(q);
-      const matchPolisi = (o.noPolisiKendaraan || "").toLowerCase().includes(q);
+      const matchDoc = (o.shipments || []).some((shipment) => shipment.noDocPerusahaan?.toLowerCase().includes(q));
+      const matchSupir = (o.shipments || []).some((shipment) => shipment.namaSupir?.toLowerCase().includes(q));
+      const matchPolisi = (o.shipments || []).some((shipment) => shipment.noPolisiKendaraan?.toLowerCase().includes(q));
       return matchNo || matchToko || matchRute || matchDoc || matchSupir || matchPolisi;
     });
   }, [pendingOrders, searchQuery]);
@@ -81,20 +70,19 @@ export default function DraftSuratJalanPage() {
     () => pendingOrders.reduce((sum, o) => sum + (Number(o.uangJalanSupir || 0)), 0),
     [pendingOrders]
   );
-  const countAccReady = useMemo(
-    () => pendingOrders.filter((o) => o.status === "DISETUJUI").length,
-    [pendingOrders]
-  );
+  const countAccReady = pendingOrders.length;
 
   const openAttachModal = (order) => {
     setAttachModal({
       open: true,
       order,
-      noDocPerusahaan: order.noDocPerusahaan || "",
-      tglDocPerusahaan: order.tglDocPerusahaan || new Date().toISOString().slice(0, 10),
-      namaSupir: order.namaSupir || "",
-      noHpSupir: order.noHpSupir || "",
-      keteranganDoc: order.keteranganDoc || "",
+      noDocPerusahaan: "",
+      tglDocPerusahaan: new Date().toISOString().slice(0, 10),
+      namaSupir: "",
+      jenisKendaraan: "",
+      noPolisiKendaraan: "",
+      tipeMobil: "",
+      rit: "",
       processing: false,
       error: null,
     });
@@ -123,6 +111,13 @@ export default function DraftSuratJalanPage() {
       }));
       return;
     }
+    if (!attachModal.jenisKendaraan || !attachModal.noPolisiKendaraan.trim() || !attachModal.tipeMobil.trim() || !attachModal.rit.trim()) {
+      setAttachModal((prev) => ({
+        ...prev,
+        error: "Kepemilikan, nomor polisi, tipe mobil, dan rit wajib diisi",
+      }));
+      return;
+    }
 
     setAttachModal((prev) => ({ ...prev, processing: true, error: null }));
     try {
@@ -130,8 +125,9 @@ export default function DraftSuratJalanPage() {
         noDocPerusahaan: attachModal.noDocPerusahaan.trim(),
         tglDocPerusahaan: attachModal.tglDocPerusahaan,
         namaSupir: attachModal.namaSupir.trim(),
-        noHpSupir: attachModal.noHpSupir.trim(),
-        keteranganDoc: attachModal.keteranganDoc,
+        jenisKendaraan: attachModal.jenisKendaraan,
+        noPolisiKendaraan: attachModal.noPolisiKendaraan.trim().toUpperCase(),
+        tipeMobilRit: `${attachModal.tipeMobil.trim()} / Rit ${attachModal.rit.trim().replace(/^rit\s*/i, "")}`,
       });
 
       setAttachModal({
@@ -140,8 +136,10 @@ export default function DraftSuratJalanPage() {
         noDocPerusahaan: "",
         tglDocPerusahaan: "",
         namaSupir: "",
-        noHpSupir: "",
-        keteranganDoc: "",
+        jenisKendaraan: "",
+        noPolisiKendaraan: "",
+        tipeMobil: "",
+        rit: "",
         processing: false,
         error: null,
       });
@@ -155,16 +153,6 @@ export default function DraftSuratJalanPage() {
     }
   };
 
-  const handleDeleteDraft = async (order) => {
-    if (!window.confirm(`Hapus jadwal/rencana ${order.noSchedule || order.noDO}?`)) return;
-    try {
-      await remove(order.id);
-      await refresh();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menghapus jadwal");
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -175,7 +163,7 @@ export default function DraftSuratJalanPage() {
             Input Surat Jalan Pabrik & Supir
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Jadwal SO yang telah di-ACC oleh Direktur Utama dapat dilengkapi Nomor Surat Jalan Pabrik (No. DOC) dan Nama Supir sebelum armada diberangkatkan.
+            SO yang telah di-ACC Direktur dilengkapi No. DOC dan detail armada di sini sebelum mulai dilacak.
           </p>
         </div>
 
@@ -207,9 +195,7 @@ export default function DraftSuratJalanPage() {
             Alur Baru Operasional (ACC SO Terlebih Dahulu)
           </p>
           <p className="mt-0.5 text-blue-800">
-            1. Admin mengajukan jadwal SO & uang jalan ke Direktur. &nbsp;•&nbsp; 
-            2. Direktur memeriksa dan memberikan <strong>ACC SO</strong>. &nbsp;•&nbsp; 
-            3. Pada halaman ini, lengkapi <strong>Surat Jalan Pabrik (No. DOC)</strong> dan <strong>Nama Supir</strong>. Setelah disimpan, status otomatis menjadi <strong>Dalam Pengiriman</strong>.
+            Setelah Direktur memberi <strong>ACC SO</strong>, admin dapat menambahkan satu atau beberapa <strong>No. DOC</strong>, masing-masing dengan supir dan kendaraan berbeda. Setiap kendaraan dilacak secara terpisah.
           </p>
         </div>
       </div>
@@ -219,20 +205,20 @@ export default function DraftSuratJalanPage() {
         <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-              SO Sudah di-ACC Direktur
+              SO Aktif
             </span>
             <span className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
               <ShieldCheck size={16} />
             </span>
           </div>
           <p className="mt-2 text-2xl font-black text-slate-900">{countAccReady}</p>
-          <p className="text-[11px] text-slate-500 mt-1">Siap dilengkapi surat jalan & supir</p>
+          <p className="text-[11px] text-slate-500 mt-1">Menunggu atau sedang mengirim DOC</p>
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-white p-4 shadow-xs">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
-              Total Menunggu Input
+              SO Bisa Ditambah DOC
             </span>
             <span className="rounded-xl bg-amber-100 p-2 text-amber-700">
               <AlertTriangle size={16} />
@@ -270,7 +256,7 @@ export default function DraftSuratJalanPage() {
               Daftar SO Siap Dilengkapi Surat Jalan & Supir
             </h2>
             <p className="text-xs text-slate-500">
-              Pilih order untuk mengisi nomor surat jalan pabrik Karawang dan nama supir yang bertugas.
+              Pilih SO yang telah disetujui untuk mengisi dokumen dan penugasan kendaraan.
             </p>
           </div>
 
@@ -295,10 +281,10 @@ export default function DraftSuratJalanPage() {
           <div className="py-16 text-center">
             <CheckCircle2 size={44} className="mx-auto text-emerald-500 mb-2" />
             <p className="text-sm font-bold text-slate-800">
-              Semua SO Sudah Dilengkapi Surat Jalan & Supir
+              Tidak ada SO menunggu detail dokumen dan armada
             </p>
             <p className="text-xs text-slate-500 mt-1 mb-4">
-              Tidak ada rencana yang tertahan. Seluruh armada siap jalan atau sedang dalam perjalanan.
+              SO yang baru di-ACC Direktur akan muncul di sini.
             </p>
             <button
               type="button"
@@ -317,7 +303,7 @@ export default function DraftSuratJalanPage() {
                     <th className="px-4 py-3">No. Schedule (SO)</th>
                     <th className="px-3 py-3">Toko / Depo Tujuan</th>
                     <th className="px-3 py-3">Rute & Tarif</th>
-                    <th className="px-3 py-3">Armada Mobil</th>
+                    <th className="px-3 py-3">Kendaraan & Supir</th>
                     <th className="px-3 py-3">Uang Jalan Supir</th>
                     <th className="px-3 py-3">Surat Jalan & Supir</th>
                     <th className="px-3 py-3">Status ACC</th>
@@ -326,9 +312,8 @@ export default function DraftSuratJalanPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {pagination.items.map((order) => {
-                    const hasDoc = order.noDocPerusahaan?.trim() && order.tglDocPerusahaan;
-                    const hasSupir = Boolean(order.namaSupir?.trim());
-                    const isAccDirektur = order.status === "DISETUJUI";
+                    const shipments = order.shipments || [];
+                    const isAccDirektur = order.status === "DISETUJUI" || order.status === "APPROVED";
 
                     return (
                       <tr key={order.id} className="transition hover:bg-slate-50/80">
@@ -356,12 +341,13 @@ export default function DraftSuratJalanPage() {
                         </td>
 
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <p className="font-mono font-bold uppercase text-slate-900">
-                            {order.noPolisiKendaraan || "-"}
-                          </p>
-                          <p className="text-slate-500 text-[11px]">
-                            {order.tipeMobilRit || "-"}
-                          </p>
+                          {shipments.length ? shipments.map((shipment) => (
+                            <p key={shipment.id} className="mb-1 whitespace-nowrap">
+                              <span className="font-semibold text-slate-800">{shipment.namaSupir}</span>
+                              <span className="text-slate-500"> · {shipment.noPolisiKendaraan}</span>
+                              <span className="block text-[10px] text-slate-500">{shipment.jenisKendaraan === "SEWA" ? "Vendor" : "Pribadi"} · {shipment.tipeMobilRit}</span>
+                            </p>
+                          )) : <span className="text-slate-400">Belum ada kendaraan</span>}
                         </td>
 
                         <td className="px-3 py-3 whitespace-nowrap">
@@ -372,29 +358,18 @@ export default function DraftSuratJalanPage() {
 
                         <td className="px-3 py-3 whitespace-nowrap">
                           <div className="space-y-1">
-                            {hasDoc ? (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-emerald-800 font-mono font-bold border border-emerald-200 text-[10px]">
-                                <CheckCircle2 size={10} />
-                                {order.noDocPerusahaan}
+                            {shipments.length ? shipments.map((shipment) => (
+                              <span key={shipment.id} className="flex items-center gap-1 font-mono font-bold text-emerald-800">
+                                <CheckCircle2 size={10} /> {shipment.noDocPerusahaan}
+                                <span className="font-sans font-normal text-slate-500">· {formatTanggal(shipment.tglDocPerusahaan)}</span>
+                                <span className="font-sans font-normal text-slate-500">· {shipment.status === "DALAM_PENGIRIMAN" ? "Berjalan" : "Menunggu ACC"}</span>
                               </span>
-                            ) : (
+                            )) : (
                               <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-red-700 font-medium border border-red-200 text-[10px]">
                                 <AlertTriangle size={10} className="text-red-500" />
                                 Belum Ada No. DOC
                               </span>
                             )}
-
-                            <div>
-                              {hasSupir ? (
-                                <span className="text-[11px] font-semibold text-slate-700">
-                                  Supir: {order.namaSupir}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-amber-700 font-medium">
-                                  Supir: Belum Di-plot
-                                </span>
-                              )}
-                            </div>
                           </div>
                         </td>
 
@@ -403,6 +378,10 @@ export default function DraftSuratJalanPage() {
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
                               <ShieldCheck size={11} />
                               ACC Direktur OK
+                            </span>
+                          ) : order.status === "DALAM_PENGIRIMAN" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 border border-blue-200 px-2.5 py-0.5 text-[10px] font-bold text-blue-800">
+                              <Truck size={11} /> {shipments.length} DOC berjalan
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
@@ -432,14 +411,6 @@ export default function DraftSuratJalanPage() {
                               <span>Input SJ & Supir</span>
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteDraft(order)}
-                              className="rounded-lg bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition"
-                              title="Hapus Rencana"
-                            >
-                              <Trash2 size={14} />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -456,7 +427,7 @@ export default function DraftSuratJalanPage() {
       {/* Modal Input Surat Jalan Pabrik & Supir */}
       {attachModal.open && (
         <Modal
-          title="Input Surat Jalan Pabrik & Penugasan Supir"
+          title="Tambah DOC dan Kendaraan"
           onClose={() => setAttachModal({ ...attachModal, open: false })}
           isOpen={attachModal.open}
         >
@@ -465,7 +436,7 @@ export default function DraftSuratJalanPage() {
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-1.5">
               <div className="flex items-center justify-between border-b pb-2 mb-2">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Jadwal SO</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">No. SO</span>
                   <p className="font-mono font-bold text-blue-900 text-sm">
                     {attachModal.order?.noSchedule || "-"}
                   </p>
@@ -487,9 +458,8 @@ export default function DraftSuratJalanPage() {
                 {attachModal.order?.tujuanKirim}
               </p>
               <p>
-                <strong className="text-slate-700">Armada Mobil:</strong>{" "}
-                <span className="font-mono font-bold uppercase">{attachModal.order?.noPolisiKendaraan}</span>
-                {" "}— {attachModal.order?.tipeMobilRit}
+                <strong className="text-slate-700">DOC terdaftar:</strong>{" "}
+                {attachModal.order?.shipments?.length || 0}
               </p>
             </div>
 
@@ -537,20 +507,6 @@ export default function DraftSuratJalanPage() {
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  Catatan Dokumen (opsional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Keterangan surat jalan..."
-                  value={attachModal.keteranganDoc}
-                  onChange={(e) =>
-                    setAttachModal({ ...attachModal, keteranganDoc: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
             </div>
 
             {/* Input Supir & No HP */}
@@ -561,36 +517,67 @@ export default function DraftSuratJalanPage() {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Nama Supir *
-                  </label>
+                <label className="block font-bold text-slate-700 sm:col-span-2">
+                  Nama Supir *
                   <input
                     type="text"
                     placeholder="Nama supir yang bertugas"
                     value={attachModal.namaSupir}
-                    onChange={(e) =>
-                      setAttachModal({ ...attachModal, namaSupir: e.target.value })
-                    }
+                    onChange={(e) => setAttachModal({ ...attachModal, namaSupir: e.target.value })}
                     required
-                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    No. HP Supir (opsional)
-                  </label>
+                <label className="block font-bold text-slate-700">
+                  Kepemilikan Kendaraan *
+                  <select
+                    value={attachModal.jenisKendaraan}
+                    onChange={(e) => setAttachModal({ ...attachModal, jenisKendaraan: e.target.value })}
+                    required
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="">Pilih kepemilikan</option>
+                    <option value="PRIBADI">Pribadi</option>
+                    <option value="SEWA">Vendor</option>
+                  </select>
+                </label>
+
+                <label className="block font-bold text-slate-700">
+                  Plat Nomor *
                   <input
-                    type="tel"
-                    placeholder="Nomor telepon supir"
-                    value={attachModal.noHpSupir}
-                    onChange={(e) =>
-                      setAttachModal({ ...attachModal, noHpSupir: e.target.value })
-                    }
-                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    type="text"
+                    value={attachModal.noPolisiKendaraan}
+                    onChange={(e) => setAttachModal({ ...attachModal, noPolisiKendaraan: e.target.value.toUpperCase() })}
+                    placeholder="Contoh: B 9482 KDA"
+                    required
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 font-mono text-xs font-bold uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
-                </div>
+                </label>
+
+                <label className="block font-bold text-slate-700">
+                  Tipe Mobil *
+                  <input
+                    type="text"
+                    value={attachModal.tipeMobil}
+                    onChange={(e) => setAttachModal({ ...attachModal, tipeMobil: e.target.value })}
+                    placeholder="CDD Box, Fuso, Tronton"
+                    required
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+
+                <label className="block font-bold text-slate-700">
+                  Rit *
+                  <input
+                    type="text"
+                    value={attachModal.rit}
+                    onChange={(e) => setAttachModal({ ...attachModal, rit: e.target.value })}
+                    placeholder="1"
+                    required
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
               </div>
             </div>
 
@@ -611,9 +598,7 @@ export default function DraftSuratJalanPage() {
                 className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition disabled:opacity-50 shadow-md"
               >
                 <Send size={13} />
-                <span>
-                  {attachModal.processing ? "Menyimpan..." : "Simpan & Armada Berangkat"}
-                </span>
+                <span>{attachModal.processing ? "Menyimpan..." : "Simpan DOC & Armada"}</span>
               </button>
             </div>
           </div>

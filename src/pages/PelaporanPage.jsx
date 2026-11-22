@@ -25,14 +25,28 @@ export default function PelaporanPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailOrder, setDetailOrder] = useState(null);
 
-  // 1. Siap dilaporkan (sudah di-ACC direktur untuk berangkat)
-  const readyOrders = orders.filter(
-    (o) => o.status === "DISETUJUI" || o.status === "DALAM_PENGIRIMAN"
-  );
+  const shipmentEntries = orders.flatMap((order) => {
+    const shipments = order.shipments?.length
+      ? order.shipments
+      : ["DALAM_PENGIRIMAN", "MENUNGGU_KONFIRMASI"].includes(order.status)
+      ? [{
+          id: null,
+          noDocPerusahaan: order.noDocPerusahaan,
+          namaSupir: order.namaSupir,
+          noPolisiKendaraan: order.noPolisiKendaraan,
+          tipeMobilRit: order.tipeMobilRit,
+          status: order.status,
+          namaPenerimaBarang: order.namaPenerimaBarang,
+          catatanPelaporan: order.catatanPelaporan,
+          tanggalDiterima: order.tanggalDiterima,
+        }]
+      : [];
+    return shipments.map((shipment) => ({ order, shipment }));
+  });
+  const readyOrders = shipmentEntries.filter(({ shipment }) => shipment.status === "DALAM_PENGIRIMAN");
 
-  // 2. Sudah dilaporkan, sedang menunggu konfirmasi/ACC akhir dari Direktur
-  const pendingConfirmationOrders = orders.filter(
-    (o) => o.status === "MENUNGGU_KONFIRMASI"
+  const pendingConfirmationOrders = shipmentEntries.filter(
+    ({ shipment }) => shipment.status === "MENUNGGU_KONFIRMASI"
   );
 
   // 3. Selesai dan telah di-ACC Direktur
@@ -77,7 +91,7 @@ export default function PelaporanPage() {
               </span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Surat Jalan yang telah di-ACC Direktur untuk berangkat. Klik &quot;Lapor Terkirim&quot; setelah barang diterima toko.
+              Setelah kendaraan tiba, klik &quot;Lapor Terkirim&quot; untuk mencatat penerimaan barang.
             </p>
           </div>
           <button
@@ -98,27 +112,28 @@ export default function PelaporanPage() {
             <Truck size={38} className="mx-auto text-slate-300 mb-2" />
             <p className="text-sm font-semibold text-slate-700">Tidak ada armada yang sedang dalam perjalanan</p>
             <p className="text-xs text-slate-500 mt-1">
-              Pengiriman akan muncul di sini setelah surat jalan disetujui (di-ACC) oleh Direktur.
+              Pengiriman muncul setelah SO di-ACC dan detail dokumen serta armada dilengkapi admin.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {readyPagination.items.map((order) => (
+            {readyPagination.items.map(({ order, shipment }) => (
               <div
-                key={order.id}
+                key={`${order.id}-${shipment.id || "legacy"}`}
                 className="rounded-xl border border-blue-200 bg-blue-50/30 p-4 hover:border-blue-400 transition"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-sm text-slate-900">{order.noSchedule || "-"}</span>
-                      <StatusBadge status={order.status} />
+                      <span className="rounded bg-white px-2 py-0.5 font-mono font-bold text-blue-800">DOC {shipment.noDocPerusahaan || "-"}</span>
+                      <StatusBadge status={shipment.status} />
                     </div>
                     <p className="text-slate-800 font-semibold text-sm">
                       {order.namaToko || order.namaPenerima} — [{order.areaDistribusi}] {order.tujuanKirim}
                     </p>
                     <p className="text-slate-500">
-                      Supir: <strong>{order.namaSupir}</strong> ({order.noPolisiKendaraan}) · Tgl Kirim: {formatTanggal(order.tanggalKirim)}
+                      Supir: <strong>{shipment.namaSupir}</strong> ({shipment.noPolisiKendaraan}) · {shipment.tipeMobilRit}
                     </p>
                     {order.catatanDirektur && (
                       <p className="text-blue-800 font-medium">
@@ -138,7 +153,7 @@ export default function PelaporanPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSelectedOrder(order)}
+                      onClick={() => setSelectedOrder({ order, shipment })}
                       className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition"
                     >
                       <CheckCircle2 size={15} />
@@ -170,15 +185,16 @@ export default function PelaporanPage() {
           </div>
 
           <div className="space-y-3">
-            {pendingPagination.items.map((order) => (
+            {pendingPagination.items.map(({ order, shipment }) => (
               <div
-                key={order.id}
+                key={`${order.id}-${shipment.id || "legacy"}`}
                 className="rounded-xl border border-purple-200 bg-white p-4 text-xs space-y-2"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-bold text-slate-900">{order.noSchedule || "-"}</span>
-                    <StatusBadge status={order.status} />
+                    <span className="font-mono font-bold text-purple-800">DOC {shipment.noDocPerusahaan || "-"}</span>
+                    <StatusBadge status={shipment.status} />
                   </div>
                   <span className="font-bold text-emerald-700">
                     {formatRupiah(order.totalSetelahPPh)}
@@ -192,17 +208,17 @@ export default function PelaporanPage() {
                   </div>
                   <div>
                     <span className="text-slate-500">Diterima Oleh: </span>
-                    <strong className="text-slate-800">{order.namaPenerimaBarang || "-"}</strong>
+                    <strong className="text-slate-800">{shipment.namaPenerimaBarang || "-"}</strong>
                   </div>
                   <div>
                     <span className="text-slate-500">Waktu Lapor: </span>
-                    <span className="text-slate-700">{formatTanggalWaktu(order.tanggalDiterima)}</span>
+                    <span className="text-slate-700">{formatTanggalWaktu(shipment.tanggalDiterima)}</span>
                   </div>
                 </div>
 
-                {order.catatanPelaporan && (
+                {shipment.catatanPelaporan && (
                   <p className="text-slate-600 bg-slate-50 p-2 rounded-lg">
-                    Catatan Supir/Admin: &ldquo;{order.catatanPelaporan}&rdquo;
+                    Catatan Supir/Admin: &ldquo;{shipment.catatanPelaporan}&rdquo;
                   </p>
                 )}
               </div>
@@ -284,11 +300,12 @@ export default function PelaporanPage() {
       {/* Modal Lapor Terkirim */}
       {selectedOrder && (
         <Modal
-          title={`Laporan Pengiriman: ${selectedOrder.noSchedule || "-"}`}
+          title={`Laporan DOC: ${selectedOrder.shipment.noDocPerusahaan || "-"}`}
           onClose={() => setSelectedOrder(null)}
         >
           <ReportDeliveryForm
-            order={selectedOrder}
+            order={selectedOrder.order}
+            shipment={selectedOrder.shipment}
             onSubmit={handleLaporkan}
             onClose={() => setSelectedOrder(null)}
           />

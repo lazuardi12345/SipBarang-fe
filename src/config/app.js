@@ -11,7 +11,6 @@ export const APP_ROUTES = {
   dashboard: "/dashboard",
   pengiriman: "/dashboard/pengiriman",
   masterTujuan: "/dashboard/master-tujuan",
-  masterKendaraan: "/dashboard/master-kendaraan",
   superadmin: "/dashboard/superadmin",
   draftSuratJalan: "/dashboard/draft-surat-jalan",
   approval: "/dashboard/approval",

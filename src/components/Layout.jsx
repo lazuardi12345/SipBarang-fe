@@ -22,7 +22,6 @@ import {
   PlusSquare,
   Sparkles,
   Settings,
-  Car,
   Wallet,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -54,12 +53,6 @@ const MENU = [
     label: 'Master Tujuan',
     icon: MapPinned,
     roles: [UserRole.ADMIN],
-  },
-  {
-    href: '/dashboard/master-kendaraan',
-    label: 'Master Kendaraan',
-    icon: Car,
-    roles: [UserRole.ADMIN, UserRole.DIREKTUR, UserRole.SUPERADMIN],
   },
   {
     href: '/dashboard/draft-surat-jalan',

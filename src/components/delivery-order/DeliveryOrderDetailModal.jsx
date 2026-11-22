@@ -82,6 +82,41 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
             </div>
           </div>
 
+          {order.shipments?.length > 0 && (
+            <div className="rounded-xl border border-blue-200 p-4">
+              <div className="mb-3 flex items-center justify-between border-b pb-2 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <span>DOC & Kendaraan</span>
+                <span className="rounded bg-blue-50 px-2 py-1 text-blue-800">{order.shipments.length} DOC</span>
+              </div>
+              <div className="space-y-2">
+                {order.shipments.map((shipment) => (
+                  <div key={shipment.id} className="grid grid-cols-1 gap-2 rounded-lg bg-slate-50 p-3 text-xs sm:grid-cols-4">
+                    <div>
+                      <span className="text-slate-500">No. DOC</span>
+                      <p className="font-mono font-bold text-slate-900">{shipment.noDocPerusahaan}</p>
+                      <p className="text-slate-500">{formatTanggal(shipment.tglDocPerusahaan)}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Supir</span>
+                      <p className="font-semibold text-slate-900">{shipment.namaSupir}</p>
+                      <p className="text-slate-500">{shipment.jenisKendaraan === "SEWA" ? "Vendor" : "Pribadi"}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Kendaraan</span>
+                      <p className="font-mono font-bold uppercase text-slate-900">{shipment.noPolisiKendaraan}</p>
+                      <p className="text-slate-500">{shipment.tipeMobilRit}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Tracking</span>
+                      <p><StatusBadge status={shipment.status} /></p>
+                      {shipment.tanggalDiterima && <p className="mt-1 text-slate-500">{formatTanggalWaktu(shipment.tanggalDiterima)}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 1. Jadwal, Gudang & Supir */}
           <div className="rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 border-b pb-2">

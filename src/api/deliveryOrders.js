@@ -42,12 +42,8 @@ export const deliveryOrderApi = {
     return res.data;
   },
 
-  async attachDocPerusahaan(id, { noDocPerusahaan, tglDocPerusahaan, keteranganDoc }) {
-    const res = await ApiClient.patch(`/delivery-orders/${id}/attach-doc`, {
-      noDocPerusahaan,
-      tglDocPerusahaan,
-      keteranganDoc,
-    });
+  async attachDocPerusahaan(id, payload) {
+    const res = await ApiClient.patch(`/delivery-orders/${id}/attach-doc`, payload);
     return res.data;
   },
 
@@ -66,8 +62,9 @@ export const deliveryOrderApi = {
     return res.data;
   },
 
-  async reportDelivery({ orderId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl }) {
+  async reportDelivery({ orderId, shipmentId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl }) {
     const res = await ApiClient.patch(`/delivery-orders/${orderId}/report`, {
+      shipmentId,
       namaPenerimaBarang,
       catatanPelaporan,
       buktiPengirimanUrl,

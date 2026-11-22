@@ -1,3 +1,17 @@
+                        <strong>{order.namaPenerimaBarang || "-"}</strong>
+                        {order.shipments?.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {order.shipments.map((shipment) => (
+                              <div key={shipment.id} className="rounded-md bg-white/80 p-2 text-slate-700">
+                                <strong className="font-mono">DOC {shipment.noDocPerusahaan}</strong>
+                                <span> · {shipment.namaSupir} ({shipment.noPolisiKendaraan})</span>
+                                <span> · diterima {shipment.namaPenerimaBarang || "-"}</span>
+                                <span> · {formatTanggalWaktu(shipment.tanggalDiterima)}</span>
+                                {shipment.catatanPelaporan && <p className="mt-1 text-slate-500">{shipment.catatanPelaporan}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
 "use client";
 
 import { useState } from "react";
@@ -215,17 +229,17 @@ export default function ApprovalPage() {
           <h2 className="text-base font-semibold text-slate-900">
             {activeTab === "MENUNGGU_ACC" && "Daftar Pengajuan SO Menunggu ACC Direktur (Gate 1)"}
             {activeTab === "MENUNGGU_KONFIRMASI" && "Daftar Laporan Terkirim Menunggu Konfirmasi Direktur (Gate 2)"}
-            {activeTab === "DISETUJUI" && "Pengiriman yang Telah Disetujui & Sedang Berjalan"}
+            {activeTab === "DISETUJUI" && "SO Disetujui, Menunggu Detail Armada"}
             {activeTab === "TERKIRIM" && "Pengiriman yang Sudah Selesai & Dikonfirmasi (Siap Buat Invoice)"}
             {activeTab === "DITOLAK" && "Pengiriman yang Ditolak"}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {activeTab === "MENUNGGU_ACC" &&
-              "Periksa jadwal SO, tujuan, armada kendaraan, dan alokasi uang jalan supir. Nama supir dan No. Surat Jalan Pabrik akan diinput admin setelah SO di-ACC."}
+              "Periksa No. SO, tanggal, tujuan toko, dan uang jalan. Admin akan melengkapi No. DOC dan detail armada setelah ACC."}
             {activeTab === "MENUNGGU_KONFIRMASI" &&
               "Admin/Supir telah melaporkan barang sampai di toko tujuan. Konfirmasi untuk menandai pengiriman selesai."}
             {activeTab === "DISETUJUI" &&
-              "Armada sedang dalam perjalanan mengantar barang ke alamat toko/depo tujuan."}
+              "SO telah disetujui. Admin sedang melengkapi dokumen dan detail armada sebelum pengiriman dimulai."}
             {activeTab === "TERKIRIM" &&
               "Pengiriman selesai. Data ini dapat langsung diproses ke penerbitan Invoice Resmi."}
             {activeTab === "DITOLAK" && "Surat jalan atau laporan pengiriman yang tidak disetujui."}
@@ -328,21 +342,35 @@ export default function ApprovalPage() {
                       <PackageCheck size={15} />
                       <span>Data Laporan Penerimaan Barang</span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-700">
-                      <div>
-                        <span className="text-slate-500">Diterima Oleh: </span>
-                        <strong>{order.namaPenerimaBarang || "-"}</strong>
+                    {order.shipments?.length > 0 ? (
+                      <div className="space-y-2 text-slate-700">
+                        {order.shipments.map((shipment) => (
+                          <div key={shipment.id} className="rounded-md bg-white/80 p-2">
+                            <strong className="font-mono">DOC {shipment.noDocPerusahaan}</strong>
+                            <span> · {shipment.namaSupir} ({shipment.noPolisiKendaraan})</span>
+                            <span> · diterima {shipment.namaPenerimaBarang || "-"}</span>
+                            <span> · {formatTanggalWaktu(shipment.tanggalDiterima)}</span>
+                            {shipment.catatanPelaporan && <p className="mt-1 text-slate-500">{shipment.catatanPelaporan}</p>}
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <span className="text-slate-500">Waktu Diterima: </span>
-                        <strong>{formatTanggalWaktu(order.tanggalDiterima)}</strong>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-700">
+                        <div>
+                          <span className="text-slate-500">Diterima Oleh: </span>
+                          <strong>{order.namaPenerimaBarang || "-"}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Waktu Diterima: </span>
+                          <strong>{formatTanggalWaktu(order.tanggalDiterima)}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Catatan Supir/Admin: </span>
+                          <span>{order.catatanPelaporan || "-"}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-500">Catatan Supir/Admin: </span>
-                        <span>{order.catatanPelaporan || "-"}</span>
-                      </div>
-                    </div>
-                    {order.buktiPengirimanUrl && (
+                    )}
+                    {!order.shipments?.length && order.buktiPengirimanUrl && (
                       <p className="text-xs text-blue-600 mt-1">
                         📎 Bukti Foto/TTD: <em>{order.buktiPengirimanUrl}</em>
                       </p>

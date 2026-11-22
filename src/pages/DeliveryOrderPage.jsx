@@ -40,16 +40,12 @@ export default function DeliveryOrderPage() {
   const [submitModal, setSubmitModal] = useState({
     open: false,
     order: null,
-    noDocPerusahaan: "",
-    tglDocPerusahaan: "",
-    uangJalanSupir: "",
-    keteranganDoc: "",
     error: null,
     processing: false,
   });
 
   const draftOrders = orders.filter(
-    (o) => o.status === "DRAFT" || o.status === "PLANNING"
+    (o) => ["DRAFT", "PLANNING", "MENUNGGU_ACC", "MENUNGGU_APPROVAL", "DISETUJUI", "APPROVED", "DALAM_PENGIRIMAN"].includes(o.status)
   );
 
   const filteredAllOrders = orders.filter((o) => {
@@ -82,10 +78,6 @@ export default function DeliveryOrderPage() {
     setSubmitModal({
       open: true,
       order,
-      noDocPerusahaan: order.noDocPerusahaan || "",
-      tglDocPerusahaan: order.tglDocPerusahaan || "",
-      uangJalanSupir: "",
-      keteranganDoc: order.keteranganDoc || "",
       error: null,
       processing: false,
     });
@@ -93,47 +85,12 @@ export default function DeliveryOrderPage() {
 
   const handleConfirmSubmit = async () => {
     if (!submitModal.order) return;
-    if (!submitModal.noDocPerusahaan || submitModal.noDocPerusahaan.trim() === "") {
-      setSubmitModal((prev) => ({
-        ...prev,
-        error: "Nomor Dokumen / Surat Jalan dari Perusahaan wajib diisi untuk diajukan ke Direktur",
-      }));
-      return;
-    }
-    if (!submitModal.tglDocPerusahaan) {
-      setSubmitModal((prev) => ({
-        ...prev,
-        error: "Tanggal surat jalan perusahaan wajib diisi",
-      }));
-      return;
-    }
-    if (
-      submitModal.uangJalanSupir === "" ||
-      !Number.isFinite(Number(submitModal.uangJalanSupir)) ||
-      Number(submitModal.uangJalanSupir) < 0
-    ) {
-      setSubmitModal((prev) => ({
-        ...prev,
-        error: "Uang jalan supir wajib diisi dengan nominal tidak negatif",
-      }));
-      return;
-    }
-
     setSubmitModal((prev) => ({ ...prev, processing: true, error: null }));
     try {
-      await submitToDirector(submitModal.order.id, {
-        noDocPerusahaan: submitModal.noDocPerusahaan,
-        tglDocPerusahaan: submitModal.tglDocPerusahaan,
-        uangJalanSupir: Number(submitModal.uangJalanSupir),
-        keteranganDoc: submitModal.keteranganDoc,
-      });
+      await submitToDirector(submitModal.order.id);
       setSubmitModal({
         open: false,
         order: null,
-        noDocPerusahaan: "",
-        tglDocPerusahaan: "",
-        uangJalanSupir: "",
-        keteranganDoc: "",
         error: null,
         processing: false,
       });
@@ -171,7 +128,7 @@ export default function DeliveryOrderPage() {
             Input & Manajemen Pengiriman
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Catat tujuan, jadwal, armada, dan data supir langsung di halaman pertama agar alur pengiriman lebih singkat dan lebih terstruktur.
+            Ajukan tujuan, data toko, No. SO, tanggal SO, dan uang jalan untuk mendapatkan ACC Direktur.
           </p>
         </div>
 
@@ -200,7 +157,7 @@ export default function DeliveryOrderPage() {
             }`}
           >
             <FileText size={15} />
-            <span>Daftar Rencana</span>
+            <span>SO Aktif</span>
             <span
               className={`rounded-full px-1.5 py-0.2 text-[11px] ${
                 activeTab === "draft" ? "bg-white/25 text-white" : "bg-amber-100 text-amber-800"
@@ -246,15 +203,14 @@ export default function DeliveryOrderPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-slate-900">
-                  Daftar Draft Pengiriman (Menunggu Surat Jalan Pabrik)
+                  SO Menunggu Pengajuan atau DOC
                 </h2>
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
-                  {draftOrders.length} Draft
+                  {draftOrders.length} SO
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Data input pengiriman disimpan di sini. Saat surat jalan dari pabrik sudah turun, klik{" "}
-                <strong>&quot;Ajukan ke Direktur&quot;</strong> agar dapat di-ACC.
+                SO yang menunggu ACC dan SO yang sudah ACC akan tampil di sini. Tambah DOC kendaraan dari menu Input SJ & Supir.
               </p>
             </div>
 
@@ -272,13 +228,13 @@ export default function DeliveryOrderPage() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-sm text-slate-500">Memuat daftar draft...</div>
+            <div className="py-12 text-center text-sm text-slate-500">Memuat SO aktif...</div>
           ) : draftOrders.length === 0 ? (
             <div className="py-16 text-center">
               <FileCheck2 size={42} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-sm font-semibold text-slate-700">Tidak ada draft pengiriman tertunda</p>
+              <p className="text-sm font-semibold text-slate-700">Tidak ada SO yang perlu ditindaklanjuti</p>
               <p className="text-xs text-slate-500 mt-1 mb-4">
-                Semua pengiriman sudah diajukan ke Direktur, atau belum ada input draft baru.
+                SO yang menunggu ACC atau DOC akan muncul di sini.
               </p>
               <button
                 type="button"
@@ -293,11 +249,12 @@ export default function DeliveryOrderPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
                   <tr>
-                    <th className="px-3 py-3">No. Schedule</th>
+                    <th className="px-3 py-3">No. SO</th>
                     <th className="px-3 py-3">Toko / Depo Tujuan</th>
                     <th className="px-3 py-3">Rute & Tarif</th>
-                    <th className="px-3 py-3">Supir & Armada</th>
-                    <th className="px-3 py-3">No. Dokumen Pabrik</th>
+                    <th className="px-3 py-3">Kontak Toko</th>
+                    <th className="px-3 py-3">Uang Jalan</th>
+                    <th className="px-3 py-3">Jumlah DOC</th>
                     <th className="px-3 py-3 text-center">Aksi</th>
                   </tr>
                 </thead>
@@ -325,21 +282,15 @@ export default function DeliveryOrderPage() {
                           </p>
                         </td>
                         <td className="px-3 py-3">
-                          <p className="font-medium text-slate-800">{order.namaSupir}</p>
-                          <p className="text-slate-500 uppercase font-mono text-[11px]">
-                            {order.noPolisiKendaraan}
-                          </p>
+                          <p className="font-medium text-slate-800">{order.noHpPenerima || "-"}</p>
                         </td>
-                        <td className="px-3 py-3 font-mono">
-                          {order.noDocPerusahaan ? (
-                            <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-800 font-semibold border border-emerald-200">
-                              {order.noDocPerusahaan}
-                            </span>
-                          ) : (
-                            <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-700 border border-amber-200 text-[11px]">
-                              Belum Turun (Draft)
-                            </span>
-                          )}
+                        <td className="px-3 py-3 font-semibold text-emerald-700">
+                          {formatRupiah(order.uangJalanSupir || 0)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="rounded bg-blue-50 px-2 py-1 font-semibold text-blue-800">
+                            {order.shipments?.length || 0} DOC
+                          </span>
                         </td>
                         <td className="px-3 py-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
@@ -350,14 +301,29 @@ export default function DeliveryOrderPage() {
                             >
                               <Eye size={13} />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => openSubmitModal(order)}
-                              className="flex items-center gap-1 rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-700 shadow-xs transition"
-                            >
-                              <Send size={12} />
-                              <span>Ajukan ke Direktur</span>
-                            </button>
+                            {order.status === "DRAFT" || order.status === "PLANNING" ? (
+                              <button
+                                type="button"
+                                onClick={() => openSubmitModal(order)}
+                                className="flex items-center gap-1 rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-700 shadow-xs transition"
+                              >
+                                <Send size={12} />
+                                <span>Ajukan SO</span>
+                              </button>
+                            ) : order.status === "MENUNGGU_ACC" || order.status === "MENUNGGU_APPROVAL" ? (
+                              <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+                                Menunggu ACC
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => navigate("/dashboard/draft-surat-jalan")}
+                                className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-700 shadow-xs transition"
+                              >
+                                <FileText size={12} />
+                                <span>{order.shipments?.length ? "Tambah DOC" : "Input DOC"}</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                     </tr>
@@ -429,7 +395,7 @@ export default function DeliveryOrderPage() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b text-slate-600 font-semibold uppercase">
                   <tr>
-                    <th className="px-4 py-3">No. Schedule</th>
+                    <th className="px-4 py-3">No. SO</th>
                     <th className="px-4 py-3">Doc Pabrik / Toko</th>
                     <th className="px-4 py-3">Rute & Tujuan</th>
                     <th className="px-4 py-3">Supir & No Polisi</th>
@@ -518,13 +484,13 @@ export default function DeliveryOrderPage() {
       {/* Modal Ajukan ke Direktur (Input Surat Jalan Pabrik) */}
       {submitModal.open && (
         <Modal
-          title="Ajukan Surat Jalan ke Direktur (ACC)"
+          title="Ajukan SO ke Direktur"
           onClose={() => setSubmitModal({ ...submitModal, open: false })}
         >
           <div className="space-y-4 text-xs">
             <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 space-y-1">
               <p>
-                <strong className="text-blue-950">No. Schedule:</strong>{" "}
+                <strong className="text-blue-950">No. SO:</strong>{" "}
                 <span className="font-mono font-bold">{submitModal.order?.noSchedule || "-"}</span>
               </p>
               <p>
@@ -532,9 +498,16 @@ export default function DeliveryOrderPage() {
                 {submitModal.order?.namaToko || submitModal.order?.namaPenerima}
               </p>
               <p>
-                <strong className="text-blue-950">Rute & Armada:</strong>{" "}
-                {submitModal.order?.tujuanKirim} · Supir: {submitModal.order?.namaSupir} (
-                {submitModal.order?.noPolisiKendaraan})
+                <strong className="text-blue-950">Tujuan:</strong>{" "}
+                {submitModal.order?.tujuanKirim}
+              </p>
+              <p>
+                <strong className="text-blue-950">Tanggal SO:</strong>{" "}
+                {formatTanggal(submitModal.order?.tglSchedule)}
+              </p>
+              <p>
+                <strong className="text-blue-950">Uang Jalan:</strong>{" "}
+                {formatRupiah(submitModal.order?.uangJalanSupir || 0)}
               </p>
             </div>
 
@@ -544,78 +517,6 @@ export default function DeliveryOrderPage() {
                 <span>{submitModal.error}</span>
               </div>
             )}
-
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Nomor Dokumen / Surat Jalan dari Pabrik / Perusahaan *
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: 26001073074"
-                value={submitModal.noDocPerusahaan}
-                onChange={(e) =>
-                  setSubmitModal({ ...submitModal, noDocPerusahaan: e.target.value })
-                }
-                required
-                className="w-full rounded-lg border border-slate-300 p-2.5 font-mono text-xs focus:border-blue-500 focus:outline-none"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Masukkan nomor surat jalan resmi yang telah diterbitkan dari pabrik/perusahaan.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Tanggal Dokumen Pabrik
-                </label>
-                <input
-                  type="date"
-                  value={submitModal.tglDocPerusahaan}
-                  onChange={(e) =>
-                    setSubmitModal({ ...submitModal, tglDocPerusahaan: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Uang Jalan Supir *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="Masukkan uang jalan untuk pengajuan ini"
-                  value={submitModal.uangJalanSupir}
-                  onChange={(e) =>
-                    setSubmitModal({ ...submitModal, uangJalanSupir: e.target.value })
-                  }
-                  required
-                  className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Nominal ditentukan per pengajuan dan tidak diambil dari master tarif.
-                </p>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Catatan Tambahan (Opsional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Catatan surat jalan..."
-                  value={submitModal.keteranganDoc}
-                  onChange={(e) =>
-                    setSubmitModal({ ...submitModal, keteranganDoc: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t">
               <button
@@ -633,7 +534,7 @@ export default function DeliveryOrderPage() {
                 className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700 shadow-sm disabled:opacity-50"
               >
                 <Send size={13} />
-                {submitModal.processing ? "Mengajukan..." : "Ajukan ke Direktur"}
+                {submitModal.processing ? "Mengajukan..." : "Ajukan SO"}
               </button>
             </div>
           </div>

@@ -80,11 +80,12 @@ export function useDeliveryOrders() {
   );
 
   const laporkanTerkirim = useCallback(
-    async ({ orderId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl }) => {
+    async ({ orderId, shipmentId, namaPenerimaBarang, catatanPelaporan, buktiPengirimanUrl }) => {
       setError(null);
       try {
         await deliveryOrderApi.reportDelivery({
           orderId,
+          shipmentId,
           namaPenerimaBarang,
           catatanPelaporan,
           buktiPengirimanUrl,
