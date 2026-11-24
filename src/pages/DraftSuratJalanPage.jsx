@@ -9,6 +9,10 @@ import { Pagination } from "../components/ui/Pagination";
 import { usePagination } from "../hooks/usePagination";
 import { formatRupiah, formatTanggal } from "../utils/format";
 import {
+  getDeliveryOrderOwnership,
+  getVehicleOwnershipLabel,
+} from "../utils/deliveryOrderFinance";
+import {
   FileText,
   AlertTriangle,
   Truck,
@@ -73,13 +77,14 @@ export default function DraftSuratJalanPage() {
   const countAccReady = pendingOrders.length;
 
   const openAttachModal = (order) => {
+    const ownership = getDeliveryOrderOwnership(order);
     setAttachModal({
       open: true,
       order,
       noDocPerusahaan: "",
       tglDocPerusahaan: new Date().toISOString().slice(0, 10),
       namaSupir: "",
-      jenisKendaraan: "",
+      jenisKendaraan: ownership === "MIXED" ? "" : ownership || "",
       noPolisiKendaraan: "",
       tipeMobil: "",
       rit: "",
@@ -345,7 +350,7 @@ export default function DraftSuratJalanPage() {
                             <p key={shipment.id} className="mb-1 whitespace-nowrap">
                               <span className="font-semibold text-slate-800">{shipment.namaSupir}</span>
                               <span className="text-slate-500"> · {shipment.noPolisiKendaraan}</span>
-                              <span className="block text-[10px] text-slate-500">{shipment.jenisKendaraan === "SEWA" ? "Vendor" : "Pribadi"} · {shipment.tipeMobilRit}</span>
+                              <span className="block text-[10px] text-slate-500">{getVehicleOwnershipLabel(shipment.jenisKendaraan)} · {shipment.tipeMobilRit}</span>
                             </p>
                           )) : <span className="text-slate-400">Belum ada kendaraan</span>}
                         </td>
@@ -534,12 +539,13 @@ export default function DraftSuratJalanPage() {
                   <select
                     value={attachModal.jenisKendaraan}
                     onChange={(e) => setAttachModal({ ...attachModal, jenisKendaraan: e.target.value })}
+                    disabled={["PRIBADI", "VENDOR"].includes(getDeliveryOrderOwnership(attachModal.order || {}))}
                     required
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
                     <option value="">Pilih kepemilikan</option>
                     <option value="PRIBADI">Pribadi</option>
-                    <option value="SEWA">Vendor</option>
+                    <option value="VENDOR">Vendor</option>
                   </select>
                 </label>
 

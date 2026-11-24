@@ -47,6 +47,11 @@ export const deliveryOrderApi = {
     return res.data;
   },
 
+  async updateOwnership(id, jenisKendaraan) {
+    const res = await ApiClient.patch(`/delivery-orders/${id}/ownership`, { jenisKendaraan });
+    return res.data;
+  },
+
   async updateLembar(id, lembar) {
     const res = await ApiClient.patch(`/delivery-orders/${id}/lembar`, { lembar });
     return res.data;

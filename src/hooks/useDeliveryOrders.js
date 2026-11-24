@@ -131,6 +131,22 @@ export function useDeliveryOrders() {
     [refresh]
   );
 
+  const updateOwnership = useCallback(
+    async (orderId, jenisKendaraan) => {
+      setError(null);
+      try {
+        const result = await deliveryOrderApi.updateOwnership(orderId, jenisKendaraan);
+        await refresh();
+        return result;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Gagal melengkapi kepemilikan kendaraan";
+        setError(msg);
+        throw e;
+      }
+    },
+    [refresh]
+  );
+
   const revise = useCallback(
     async (orderId, note = "") => {
       setError(null);
@@ -200,6 +216,7 @@ export function useDeliveryOrders() {
     create,
     consolidateRun,
     attachDocPerusahaan,
+    updateOwnership,
     revise,
     remove,
     setujui,

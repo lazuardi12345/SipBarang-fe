@@ -1,17 +1,3 @@
-                        <strong>{order.namaPenerimaBarang || "-"}</strong>
-                        {order.shipments?.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {order.shipments.map((shipment) => (
-                              <div key={shipment.id} className="rounded-md bg-white/80 p-2 text-slate-700">
-                                <strong className="font-mono">DOC {shipment.noDocPerusahaan}</strong>
-                                <span> · {shipment.namaSupir} ({shipment.noPolisiKendaraan})</span>
-                                <span> · diterima {shipment.namaPenerimaBarang || "-"}</span>
-                                <span> · {formatTanggalWaktu(shipment.tanggalDiterima)}</span>
-                                {shipment.catatanPelaporan && <p className="mt-1 text-slate-500">{shipment.catatanPelaporan}</p>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
 "use client";
 
 import { useState } from "react";

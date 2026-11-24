@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { pengeluaranLainApi } from "../api/pengeluaranLain";
 
-export function usePengeluaranLain(filterParams = {}) {
+export function usePengeluaranLain(filterParams = {}, enabled = true) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -9,6 +9,7 @@ export function usePengeluaranLain(filterParams = {}) {
   const filterKey = JSON.stringify(filterParams);
 
   const fetchItems = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     setError(null);
     try {
@@ -19,11 +20,17 @@ export function usePengeluaranLain(filterParams = {}) {
     } finally {
       setLoading(false);
     }
-  }, [filterKey]);
+  }, [filterKey, enabled]);
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    if (enabled) {
+      fetchItems();
+    } else {
+      setItems([]);
+      setError(null);
+      setLoading(false);
+    }
+  }, [enabled, fetchItems]);
 
   const createItem = async (payload) => {
     const res = await pengeluaranLainApi.create(payload);

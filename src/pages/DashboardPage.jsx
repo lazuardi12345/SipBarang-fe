@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useDeliveryOrders } from "../hooks/useDeliveryOrders";
 import { useInvoices } from "../hooks/useInvoices";
+import { usePengeluaranLain } from "../hooks/usePengeluaranLain";
 import MonthlyFinancialChart from "../components/dashboard/MonthlyFinancialChart";
-import { getDeliveryOrderFinancials } from "../utils/deliveryOrderFinance";
+import { getDirectorCashTotals } from "../utils/deliveryOrderFinance";
 import { formatRupiah } from "../utils/format";
 import {
   Truck,
@@ -14,6 +15,8 @@ import {
   Receipt,
   ArrowRight,
   TrendingUp,
+  TrendingDown,
+  Wallet,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -22,8 +25,14 @@ import { UserRole } from "../utils/constants";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { orders, loading: loadingOrders } = useDeliveryOrders();
+  const isDirektur = user?.role === UserRole.DIREKTUR || user?.role === UserRole.SUPERADMIN;
+  const { orders, loading: loadingOrders, updateOwnership } = useDeliveryOrders();
   const { invoices } = useInvoices();
+  const {
+    items: otherExpenses,
+    loading: loadingOtherExpenses,
+    error: otherExpensesError,
+  } = usePengeluaranLain({}, isDirektur);
 
   const draftOrders = orders.filter((o) => {
     if (o.status === "DISETUJUI" && (!o.noDocPerusahaan?.trim() || !o.namaSupir?.trim())) return true;
@@ -34,22 +43,12 @@ export default function DashboardPage() {
   const approvedOrders = orders.filter((o) => o.status === "DISETUJUI" || o.status === "DALAM_PENGIRIMAN");
   const deliveredOrders = orders.filter((o) => o.status === "TERKIRIM");
 
-  const totalKeuanganTerkirim = deliveredOrders.reduce(
-    (totals, order) => {
-      const amounts = getDeliveryOrderFinancials(order);
-      totals.gross += amounts.gross;
-      totals.profit += amounts.profit;
-      if (amounts.driverExpense == null) {
-        totals.missingCount += 1;
-        return totals;
-      }
-      totals.driverExpense += amounts.driverExpense;
-      return totals;
-    },
-    { gross: 0, profit: 0, driverExpense: 0, missingCount: 0 }
+  const expensesForSummary =
+    isDirektur && (loadingOtherExpenses || otherExpensesError) ? null : otherExpenses;
+  const totalKeuanganTerkirim = getDirectorCashTotals(
+    deliveredOrders,
+    isDirektur ? expensesForSummary : []
   );
-
-  const isDirektur = user?.role === UserRole.DIREKTUR || user?.role === UserRole.SUPERADMIN;
 
   return (
     <div className="space-y-8">
@@ -183,7 +182,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isDirektur ? "xl:grid-cols-3" : "lg:grid-cols-4"}`}>
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isDirektur ? "xl:grid-cols-4" : "lg:grid-cols-4"}`}>
         {isDirektur ? (
           <>
             <Link
@@ -257,14 +256,14 @@ export default function DashboardPage() {
               className="h-full rounded-2xl border border-orange-200 bg-white p-5 shadow-sm hover:border-orange-400 transition group flex flex-col"
             >
               <div className="flex items-center justify-between text-slate-500 mb-3">
-                <span className="text-xs font-semibold uppercase text-orange-700">Laba</span>
+                <span className="text-xs font-semibold uppercase text-orange-700">PPh Invoice (2%)</span>
                 <div className="rounded-xl bg-orange-100 p-2 text-orange-700 group-hover:scale-110 transition">
                   <Receipt size={18} />
                 </div>
               </div>
-              <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.profit)}</p>
+              <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.pph2)}</p>
               <p className="mt-3 text-xs text-slate-500">
-                2% dari tarif bruto
+                Dipotong pada invoice
               </p>
             </Link>
 
@@ -273,16 +272,103 @@ export default function DashboardPage() {
               className="h-full rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm hover:border-emerald-400 transition group flex flex-col"
             >
               <div className="flex items-center justify-between text-slate-500 mb-3">
-                <span className="text-xs font-semibold uppercase text-emerald-700">Uang Jalan Sopir</span>
+                <span className="text-xs font-semibold uppercase text-emerald-700">Kas Perusahaan dari Tarif</span>
                 <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 group-hover:scale-110 transition">
                   <TrendingUp size={18} />
                 </div>
               </div>
-              <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.driverExpense)}</p>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {totalKeuanganTerkirim.companyRevenue == null
+                  ? "Data belum lengkap"
+                  : formatRupiah(totalKeuanganTerkirim.companyRevenue)}
+              </p>
               <p className="mt-3 text-xs text-slate-500">
-                Sesuai uang jalan pada master tujuan
+                Pribadi 98% · Vendor 8%
               </p>
             </Link>
+
+            <Link
+              to="/dashboard/invoice"
+              className="h-full rounded-2xl border border-violet-200 bg-white p-5 shadow-sm hover:border-violet-400 transition group flex flex-col"
+            >
+              <div className="flex items-center justify-between text-slate-500 mb-3">
+                <span className="text-xs font-semibold uppercase text-violet-700">Pembayaran Vendor</span>
+                <div className="rounded-xl bg-violet-100 p-2 text-violet-700 group-hover:scale-110 transition">
+                  <TrendingDown size={18} />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {totalKeuanganTerkirim.vendorPayment == null
+                  ? "Data belum lengkap"
+                  : formatRupiah(totalKeuanganTerkirim.vendorPayment)}
+              </p>
+              <p className="mt-3 text-xs text-slate-500">
+                90% dari bruto SO Vendor
+              </p>
+            </Link>
+
+            <Link
+              to="/dashboard/riwayat"
+              className="h-full rounded-2xl border border-blue-200 bg-white p-5 shadow-sm hover:border-blue-400 transition group flex flex-col"
+            >
+              <div className="flex items-center justify-between text-slate-500 mb-3">
+                <span className="text-xs font-semibold uppercase text-blue-700">Potongan Uang Jalan</span>
+                <div className="rounded-xl bg-blue-100 p-2 text-blue-700 group-hover:scale-110 transition">
+                  <TrendingDown size={18} />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {totalKeuanganTerkirim.driverExpense == null
+                  ? "Data belum lengkap"
+                  : formatRupiah(totalKeuanganTerkirim.driverExpense)}
+              </p>
+              <p className="mt-3 text-xs text-slate-500">
+                Dikurangi per SO
+              </p>
+            </Link>
+
+            <Link
+              to="/dashboard/pengeluaran-lain"
+              className="h-full rounded-2xl border border-rose-200 bg-white p-5 shadow-sm hover:border-rose-400 transition group flex flex-col"
+            >
+              <div className="flex items-center justify-between text-slate-500 mb-3">
+                <span className="text-xs font-semibold uppercase text-rose-700">Pengeluaran Lain</span>
+                <div className="rounded-xl bg-rose-100 p-2 text-rose-700 group-hover:scale-110 transition">
+                  <TrendingDown size={18} />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {loadingOtherExpenses
+                  ? "Memuat..."
+                  : otherExpensesError
+                  ? "Gagal dimuat"
+                  : formatRupiah(totalKeuanganTerkirim.otherExpenses || 0)}
+              </p>
+              <p className="mt-3 text-xs text-slate-500">
+                Dikurangi dari uang kas
+              </p>
+            </Link>
+
+            <div className="h-full rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between text-slate-500 mb-3">
+                <span className="text-xs font-semibold uppercase text-amber-800">Saldo Kas Bersih</span>
+                <div className="rounded-xl bg-amber-100 p-2 text-amber-800">
+                  <Wallet size={18} />
+                </div>
+              </div>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {totalKeuanganTerkirim.cashBalance == null
+                  ? loadingOtherExpenses
+                    ? "Memuat..."
+                    : otherExpensesError
+                    ? "Gagal dimuat"
+                    : "Data belum lengkap"
+                  : formatRupiah(totalKeuanganTerkirim.cashBalance)}
+              </p>
+              <p className="mt-3 text-xs text-slate-600">
+                Setelah uang jalan & pengeluaran lain
+              </p>
+            </div>
           </>
         ) : (
           <>
@@ -347,7 +433,11 @@ export default function DashboardPage() {
                   <TrendingUp size={18} />
                 </div>
               </div>
-              <p className="text-2xl font-black text-slate-900 leading-none">{formatRupiah(totalKeuanganTerkirim.driverExpense)}</p>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {totalKeuanganTerkirim.driverExpense == null
+                  ? "Belum lengkap"
+                  : formatRupiah(totalKeuanganTerkirim.driverExpense)}
+              </p>
               <p className="mt-3 text-xs text-slate-500">
                 Total uang jalan pengiriman terkirim
               </p>
@@ -356,19 +446,41 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {isDirektur && totalKeuanganTerkirim.missingCount > 0 && (
+      {isDirektur && otherExpensesError && (
         <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-          {totalKeuanganTerkirim.missingCount} DO belum memiliki data uang jalan dari master tarif. Laba tetap dihitung 2% dari bruto; jalankan migrasi backend untuk melengkapi total uang jalan.
+          Pengeluaran lain-lain gagal dimuat, jadi saldo kas bersih belum dapat dihitung. {otherExpensesError}
         </p>
       )}
 
-      {!isDirektur && totalKeuanganTerkirim.missingCount > 0 && (
+      {isDirektur && (totalKeuanganTerkirim.missingOwnershipCount > 0 || totalKeuanganTerkirim.missingDriverExpenseCount > 0) && (
         <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-          {totalKeuanganTerkirim.missingCount} DO terkirim belum memiliki data uang jalan supir.
+          Saldo kas belum lengkap:
+          {totalKeuanganTerkirim.missingOwnershipCount > 0 && ` ${totalKeuanganTerkirim.missingOwnershipCount} SO belum punya status Pribadi/Vendor yang valid`}
+          {totalKeuanganTerkirim.mixedOwnershipCount > 0 && `, termasuk ${totalKeuanganTerkirim.mixedOwnershipCount} SO dengan DOC campuran`}
+          {totalKeuanganTerkirim.missingDriverExpenseCount > 0 && `; ${totalKeuanganTerkirim.missingDriverExpenseCount} SO belum memiliki data uang jalan`}
+          .
         </p>
       )}
 
-      {isDirektur && <MonthlyFinancialChart orders={orders} />}
+      {!isDirektur && totalKeuanganTerkirim.missingDriverExpenseCount > 0 && (
+        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+          {totalKeuanganTerkirim.missingDriverExpenseCount} DO terkirim belum memiliki data uang jalan supir.
+        </p>
+      )}
+
+      {isDirektur && loadingOtherExpenses && (
+        <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
+          Memuat data pengeluaran lain-lain untuk perhitungan kas...
+        </p>
+      )}
+      {isDirektur && !loadingOtherExpenses && !otherExpensesError && (
+        <MonthlyFinancialChart
+          orders={orders}
+          otherExpenses={otherExpenses}
+          canEditOwnership={user?.role === UserRole.DIREKTUR}
+          onUpdateOwnership={updateOwnership}
+        />
+      )}
 
       {/* Recent Orders List */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -5,6 +5,7 @@ import { ImagePreview } from "../ui/ImagePreview";
 import { StatusBadge } from "../ui/StatusBadge";
 import { CompanyKopSurat } from "../common/CompanyKopSurat";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "../../utils/format";
+import { getVehicleOwnershipLabel } from "../../utils/deliveryOrderFinance";
 import {
   Truck,
   FileText,
@@ -99,7 +100,7 @@ export function DeliveryOrderDetailModal({ order, onClose }) {
                     <div>
                       <span className="text-slate-500">Supir</span>
                       <p className="font-semibold text-slate-900">{shipment.namaSupir}</p>
-                      <p className="text-slate-500">{shipment.jenisKendaraan === "SEWA" ? "Vendor" : "Pribadi"}</p>
+                      <p className="text-slate-500">{getVehicleOwnershipLabel(shipment.jenisKendaraan)}</p>
                     </div>
                     <div>
                       <span className="text-slate-500">Kendaraan</span>
